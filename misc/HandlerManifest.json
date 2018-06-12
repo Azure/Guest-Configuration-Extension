@@ -2,11 +2,11 @@
     {
         "version": 1.0,
         "handlerManifest": {
-            "installCommand": "bin/custom-script-shim install",
-            "uninstallCommand": "bin/custom-script-shim uninstall",
-            "updateCommand": "bin/custom-script-shim update",
-            "enableCommand": "bin/custom-script-shim enable",
-            "disableCommand": "bin/custom-script-shim disable",
+            "installCommand": "bin/guest-configuration-shim install",
+            "uninstallCommand": "bin/guest-configuration-shim uninstall",
+            "updateCommand": "bin/guest-configuration-shim update",
+            "enableCommand": "bin/guest-configuration-shim enable",
+            "disableCommand": "bin/guest-configuration-shim disable",
             "rebootAfterInstall": false,
             "reportHeartbeat": false,
             "updateMode": "UpdateWithInstall"
