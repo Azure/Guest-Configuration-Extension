@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<ExtensionImage xmlns="http://schemas.microsoft.com/windowsazure">
+  <ProviderNameSpace>Microsoft.Azure.Extensions</ProviderNameSpace>
+  <Type>GuestConfiguration</Type>
+  <Version>0.0.1</Version>
+  <Label>Microsoft Azure Guest Configuration Extension for Linux Virtual Machines</Label>
+  <HostingResources>VmRole</HostingResources>
+  <MediaLink></MediaLink>
+  <Description>Microsoft Azure Guest Configuration Extension for Linux Virtual Machines</Description>
+  <IsInternalExtension>true</IsInternalExtension>
+  <IsJsonExtension>true</IsJsonExtension>
+  <SupportedOS>Linux</SupportedOS>
+  <CompanyName>Microsoft</CompanyName>
+  <!--%REGIONS%-->
+</ExtensionImage>
