@@ -20,7 +20,7 @@ type flags struct {
 
 var (
 	verbose = flag.Bool("verbose", false, "Return a detailed report")
-	debug   = flag.Bool("debug", false, "Start debug mode")
+	debug   = flag.Bool("debug", false, "Return a debug report")
 
 	cmds = map[string]cmd{
 		"install":   {"install"},
