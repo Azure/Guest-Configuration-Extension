@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_commandsExist(t *testing.T) {

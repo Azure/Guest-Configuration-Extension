@@ -6,13 +6,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/Azure/azure-docker-extension/pkg/vmextension"
+	"github.com/go-kit/kit/log"
 )
 
-// Add more fields as necessary
-type cmd struct {
-	name string // human readable string
-}
-
+// flags for debugging and printing detailed reports
 type flags struct {
 	verbose bool
 	debug   bool
@@ -22,24 +21,51 @@ var (
 	verbose = flag.Bool("verbose", false, "Return a detailed report")
 	debug   = flag.Bool("debug", false, "Return a debug report")
 
-	cmds = map[string]cmd{
-		"install":   {"install"},
-		"uninstall": {"uninstall"},
-		"enable":    {"enable"},
-		"update":    {"update"},
-		"disable":   {"disable"},
-	}
+	// dataDir is where we store the downloaded files, logs and state for
+	// the extension handler
+	dataDir = "/var/lib/waagent/guest-configuration"
+
+	// mrseq holds the processed highest sequence number to make sure
+	// we do not run the command more than once for the same sequence
+	// number. Stored under dataDir. This file is auto-preserved by the agent.
+	mostRecentSequence = "mrseq"
+
+	// downloadDir is where we store the downloaded files in the "{downloadDir}/{seqnum}/file"
+	// format and the logs as "{downloadDir}/{seqnum}/std(out|err)". Stored under dataDir
+	downloadDir = "download"
 )
 
 func main() {
+	logger := log.With(log.With(log.NewSyncLogger(log.NewLogfmtLogger(
+		os.Stdout)), "time", log.DefaultTimestamp), "version", VersionString())
+
 	// parse the command line arguments
 	flag.Parse()
 	flags := flags{*verbose, *debug}
 	cmd := parseCmd(flag.Args())
+	logger = log.With(logger, "operation", cmd.name)
 
+	// print flags and command name
 	fmt.Println("Verbose is " + strconv.FormatBool(flags.verbose))
 	fmt.Println("Debug is " + strconv.FormatBool(flags.debug))
 	fmt.Println(cmd.name + " extension")
+
+	// parse extension environment
+	// currently have an issue with this when I execute
+	hEnv, err := vmextension.GetHandlerEnv()
+	if err != nil {
+		logger.Log("message", "failed to parse handlerenv", "error", err)
+		os.Exit(cmd.failExitCode)
+	}
+
+	// get sequence number (should we be throwing a fatal error here?)
+	seqNum, err := vmextension.FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
+	if err != nil {
+		logger.Log("messsage", "failed to find sequence number", "error", err)
+	}
+	logger = log.With(logger, "seq", seqNum)
+
+	// execute the command
 }
 
 // parseCmd looks at the input array and parses the subcommand. If it is invalid,
