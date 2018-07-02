@@ -21,6 +21,6 @@ binary: clean
 	cp ./misc/guest-configuration-shim ./$(BINDIR)
 
 clean:
-	rm -rf "$(BINDER)" "$(BUNDLEDIR)"
+	rm -rf "$(BINDIR)" "$(BUNDLEDIR)"
 
 .PHONY: clean binary
