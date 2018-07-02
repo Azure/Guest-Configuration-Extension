@@ -1,6 +1,6 @@
-BINDER=bin
-BIN=guest-configuration-extension
 BUNDLEDIR=bundle
+BINDIR=bin
+BIN=guest-configuration-extension
 BUNDLE=guest-configuration-extension.zip
 
 bundle: clean binary
@@ -17,8 +17,8 @@ binary: clean
 	fi
 	GOOS=linux GOARCH=amd64 govvv build -v \
 		-ldflags "-X main.Version=`grep -E -m 1 -o  '<Version>(.*)</Version>' misc/manifest.xml | awk -F">" '{print $$2}' | awk -F"<" '{print $$1}'`" \
-		-o $(BINDER)/$(BIN) ./main
-	cp ./misc/guest-configuration-shim ./$(BINDER)
+		-o $(BINDIR)/$(BIN) ./main
+	cp ./misc/guest-configuration-shim ./$(BINDIR)
 
 clean:
 	rm -rf "$(BINDER)" "$(BUNDLEDIR)"
