@@ -27,6 +27,8 @@ godep save ./main/
 Usage - https://github.com/tools/godep#edit-test-cycle
 
 ```
+godep restore
+
 godep go build
 godep go install
 godep go test
