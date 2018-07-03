@@ -1,9 +1,36 @@
 Go resources
 ====
 
+ * [Go Dependencies](#godeps)
  * [Books](#books)
     * [Starter Books](#starter-books)
  * [Other Resources](#resources)
+
+**Go Dependencies**
+=====
+Added vendor and godep dirs.
+
+Steps - 
+```
+go get github.com/tools/godep
+go get github.com/Azure/Guest-Configuration-Extension
+cd $GOPATH/github.com/Azure/Guest-Configuration-Extension
+# Some dependencies for godep save - 
+go get github.com/kr/logfmt
+go get github.com/davecgh/go-spew/spew
+go get github.com/pmezard/go-difflib/difflib
+godep save ./main/
+```
+
+`godep save ./main/` generates the vendor and the godeps dir. 
+
+Usage - https://github.com/tools/godep#edit-test-cycle
+
+```
+godep go build
+godep go install
+godep go test
+```
 
 **Books**
 =====
