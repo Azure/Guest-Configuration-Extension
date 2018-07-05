@@ -20,12 +20,11 @@ type cmd struct {
 }
 
 var (
-
 	// allowed user inputs
 	cmds = map[string]cmd{
-		"install":   {install, "install", true, 52},
+		"install":   {install, "install", false, 52},
 		"uninstall": {uninstall, "uninstall", true, 3},
-		"enable":    {enable, "enable", false, 3},
+		"enable":    {enable, "enable", true, 3},
 		"update":    {update, "update", true, 3},
 		"disable":   {disable, "disable", true, 3},
 	}
