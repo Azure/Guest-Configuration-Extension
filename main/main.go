@@ -70,6 +70,16 @@ func main() {
 	}
 	logger = log.With(logger, "seq", seqNum)
 
+	// check sub-command preconditions, if any, before executing
+	logger.Log("event", "start")
+	if cmd.pre != nil {
+		logger.Log("event", "pre-check")
+		if err := cmd.pre(logger, seqNum); err != nil {
+			logger.Log("event", "pre-check failed", "error", err)
+			os.Exit(cmd.failExitCode)
+		}
+	}
+
 	// execute the command
 	reportStatus(logger, hEnv, seqNum, status.StatusTransitioning, cmd, "")
 	msg, err := cmd.f(logger, hEnv, seqNum)
