@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	cmdEnable = cmd {enable, "enable", true, 3}
+	cmdEnable = cmd {enable, "enable", true, enablePre, 3}
 )
 
 func Test_statusMsg(t *testing.T) {

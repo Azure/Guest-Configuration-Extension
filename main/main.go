@@ -50,7 +50,7 @@ func main() {
 	// print flags and command name
 	fmt.Println("Verbose is " + strconv.FormatBool(flags.verbose))
 	fmt.Println("Debug is " + strconv.FormatBool(flags.debug))
-	fmt.Println(cmd.name + " extension")
+	fmt.Println(cmd.name + " agent")
 
 	// parse extension environment
 	hEnv, err := vmextension.GetHandlerEnv()
