@@ -87,7 +87,7 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 	}
 
 	dir := filepath.Join(dataDir, downloadDir, fmt.Sprintf("%d", seqNum))
-	_, err = unzip("GCAgentx64.zip", "Agent")
+	_, err = unzip(logger, "GCAgentx64.zip", "Agent")
 
 	// run agent scripts
 	runErr := runCmd(logger, dir, cfg)
@@ -135,6 +135,9 @@ func checkAndSaveSeqNum(logger log.Logger, seqNum int, mrseqPath string) (should
 		// store sequence number is equal or greater than the current sequence number
 		return true, nil
 	}
+	if err := seqnum.Set(mrseqPath, seqNum); err != nil {
+		return false, errors.Wrap(err, "failed to save the sequence number")
+	}
 	logger.Log("event", "seqnum saved", "path", mrseqPath)
 
 	return false, nil
@@ -163,12 +166,14 @@ func runCmd(logger log.Logger, dir string, cfg handlerSettings) (err error) {
 
 // decompresses a zip archive, moving all files and folders within the zip file
 // to an output directory
-func unzip(source string, dest string) ([]string, error) {
+func unzip(logger log.Logger, source string, dest string) ([]string, error) {
+	logger.Log("event", "unzipping agent")
+
 	var filenames []string
 
 	r, err := zip.OpenReader(source)
 	if err != nil {
-		return filenames, err
+		return filenames, errors.Wrap(err, "failed to open zip")
 	}
 	defer r.Close()
 
