@@ -8,11 +8,11 @@ import (
 	"github.com/Azure/custom-script-extension-linux/pkg/seqnum"
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
-	"archive/zip"
 	"path/filepath"
-	"io"
 	"fmt"
 	"time"
+	"archive/zip"
+	"io"
 )
 
 type cmdfunc func(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error)
@@ -28,7 +28,7 @@ type cmd struct {
 }
 
 const (
-	fullName                = "Microsoft.Azure.Extensions.CustomScript"
+	fullName                = "Microsoft.Azure.Extensions.GuestConfigurationForLinux"
 	maxTailLen              = 4 * 1024 // length of max stdout/stderr to be transmitted in .status file
 	maxTelemetryTailLen int = 1800
 )
@@ -86,10 +86,17 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 		return "", errors.Wrap(err, "failed to get configuration")
 	}
 
-	dir := filepath.Join(dataDir, downloadDir, fmt.Sprintf("%d", seqNum))
-	_, err = unzip(logger, "GCAgentx64.zip", "Agent")
+	// use the agent zip name to pull out the version later
+	version := "0.0.1"
+
+	// unzip the file
+	// what should happen if dir already exists?
+	dir := filepath.Join(dataDir, downloadDir, version, "agent")
+
+	_, err = unzip(logger, agentZip, dir)
 
 	// run agent scripts
+	// call each separately?
 	runErr := runCmd(logger, dir, cfg)
 
 	// collect the logs if available
@@ -168,17 +175,15 @@ func runCmd(logger log.Logger, dir string, cfg handlerSettings) (err error) {
 // to an output directory
 func unzip(logger log.Logger, source string, dest string) ([]string, error) {
 	logger.Log("event", "unzipping agent")
-
 	var filenames []string
-
 	r, err := zip.OpenReader(source)
 	if err != nil {
+		logger.Log("event", "failed to open zip", "error", err)
 		return filenames, errors.Wrap(err, "failed to open zip")
 	}
 	defer r.Close()
 
 	for _, f := range r.File {
-
 		rc, err := f.Open()
 		if err != nil {
 			return filenames, err
@@ -190,27 +195,20 @@ func unzip(logger log.Logger, source string, dest string) ([]string, error) {
 		filenames = append(filenames, fpath)
 
 		if f.FileInfo().IsDir() {
-
 			// make folder
 			os.MkdirAll(fpath, os.ModePerm)
-
 		} else {
-
 			// make file
 			if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
 				return filenames, err
 			}
-
 			outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if err != nil {
 				return filenames, err
 			}
-
 			_, err = io.Copy(outFile, rc)
-
 			// close the file without defer to close before next iteration of loop
 			outFile.Close()
-
 			if err != nil {
 				return filenames, err
 			}

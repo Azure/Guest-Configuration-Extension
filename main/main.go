@@ -34,10 +34,12 @@ var (
 
 	// downloadDir is where we store the downloaded files in the "{downloadDir}/{seqnum}/file"
 	// format and the logs as "{downloadDir}/{seqnum}/std(out|err)". Stored under dataDir
-	downloadDir = "download"
+	downloadDir = "GCAgent"
 
 
-	agentZip = "../GCAgentx64.zip"
+	// agentZip is the directory where the agent package is stored
+	// it will be unzipped into {dataDir}/GCAgent/{version}/agent
+	agentZip = "../agent/GCAgentx64.zip"
 )
 
 func main() {

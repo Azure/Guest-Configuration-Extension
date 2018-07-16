@@ -112,38 +112,14 @@ func Test_unzip_fail(t *testing.T) {
 }
 
 func Test_unzip_pass(t *testing.T) {
-	filenames, err := unzip(log.NewNopLogger(), "../agent/GCAgentx64.zip", "agent")
+	version := "0.0.1"
+	dir := filepath.Join(dataDir, downloadDir, version, "agent")
+	t.Log(dir)
+	filenames, err := unzip(log.NewNopLogger(), agentZip, dir)
 	require.Nil(t, err)
 	require.NotEmpty(t, filenames)
 	t.Log(filenames)
+
+	// delete the test directory
+	os.RemoveAll(downloadDir)
 }
-
-/*
-func Test_downloadFiles(t *testing.T) {
-	dir, err := ioutil.TempDir("", "")
-	require.Nil(t, err)
-	defer os.RemoveAll(dir)
-
-	srv := httptest.NewServer(httpbin.GetMux())
-	defer srv.Close()
-
-	err = downloadFiles(log.NewContext(log.NewNopLogger()),
-		dir,
-		handlerSettings{
-			publicSettings: publicSettings{
-				FileURLs: []string{
-					srv.URL + "/bytes/10",
-					srv.URL + "/bytes/100",
-					srv.URL + "/bytes/1000",
-				}},
-		})
-	require.Nil(t, err)
-
-	// check the files
-	f := []string{"10", "100", "1000"}
-	for _, fn := range f {
-		fp := filepath.Join(dir, fn)
-		_, err := os.Stat(fp)
-		require.Nil(t, err, "%s is missing from download dir", fp)
-	}
-} */
