@@ -76,12 +76,26 @@ func Test_checkAndSaveSeqNum(t *testing.T) {
 	require.True(t, shouldExit)
 }
 
+func Test_parseVersionString_fail(t *testing.T) {
+	version, err := parseVersionString("helloWorld.zip")
+	t.Log(version)
+	t.Log(err)
+	require.NotNil(t, err)
+}
+
+func Test_parseVersionString_success(t *testing.T) {
+	version, err := parseVersionString(agentZip)
+	t.Log(version)
+	t.Log(err)
+	require.Nil(t, err)
+}
+
 func Test_runCmd_success(t *testing.T) {
 	dir, err := ioutil.TempDir("", "")
 	require.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	require.Nil(t, runCmd(log.NewNopLogger(), dir, handlerSettings{
+	require.Nil(t, runCmd(log.NewNopLogger(), "date", dir, handlerSettings{
 		publicSettings: publicSettings{CommandToExecute: "date"},
 	}), "command should run successfully")
 
@@ -97,7 +111,7 @@ func Test_runCmd_pass(t *testing.T) {
 	require.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	err = runCmd(log.NewNopLogger(), dir, handlerSettings{})
+	err = runCmd(log.NewNopLogger(), "", dir, handlerSettings{})
 	require.Nil(t, err)
 }
 
@@ -113,7 +127,7 @@ func Test_unzip_fail(t *testing.T) {
 
 func Test_unzip_pass(t *testing.T) {
 	version := "0.0.1"
-	dir := filepath.Join(dataDir, downloadDir, version, "agent")
+	dir := filepath.Join(dataDir, agentDir, version)
 	t.Log(dir)
 	filenames, err := unzip(log.NewNopLogger(), agentZip, dir)
 	require.Nil(t, err)
@@ -121,5 +135,7 @@ func Test_unzip_pass(t *testing.T) {
 	t.Log(filenames)
 
 	// delete the test directory
-	os.RemoveAll(downloadDir)
+	os.RemoveAll(agentDir)
+
+	// TODO: require that the directory is deleted
 }

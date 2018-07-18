@@ -13,6 +13,7 @@ import (
 	"time"
 	"archive/zip"
 	"io"
+	"regexp"
 )
 
 type cmdfunc func(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error)
@@ -86,18 +87,27 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 		return "", errors.Wrap(err, "failed to get configuration")
 	}
 
-	// use the agent zip name to pull out the version later
-	version := "0.0.1"
+	// parse the version string
+	version, err := parseVersionString(agentZip)
+	if err != nil {
+		logger.Log("message", "failed to parse version string", "error", err, "agentName", agentZip)
+		return "", errors.Wrap(err, "failed to parse version string")
+	}
 
 	// unzip the file
-	// what should happen if dir already exists?
-	dir := filepath.Join(dataDir, downloadDir, version, "agent")
-
+	dir := filepath.Join(dataDir, agentDir, version)
 	_, err = unzip(logger, agentZip, dir)
 
-	// run agent scripts
-	// call each separately?
-	runErr := runCmd(logger, dir, cfg)
+	// agent directory
+	agentDirectory := filepath.Join(dir, agentName)
+
+	// run install.sh and enable.sh
+	runErr := runCmd(logger, "bash ./install.sh", agentDirectory, cfg)
+	if runErr != nil {
+		logger.Log("message", "error running install.sh", "error", runErr)
+	} else {
+		runErr = runCmd(logger, "bash ./enable.sh", agentDirectory, cfg)
+	}
 
 	// collect the logs if available
 	stdoutF, stderrF := logPaths(dir)
@@ -129,6 +139,15 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 	return msg, runErr
 }
 
+func parseVersionString(agentName string) (version string, err error) {
+	r, _ := regexp.Compile("^([./a-zA-Z0-9]*)_([0-9.]*)?[.](.*)$")
+	matches := r.FindStringSubmatch(agentName)
+	if len(matches) != 4 {
+		return "", errors.New("incorrect naming format for agent")
+	}
+	return matches[2], nil
+}
+
 // checkAndSaveSeqNum checks if the given seqNum is already processed
 // according to the specified seqNumFile and if so, returns true,
 // otherwise saves the given seqNum into seqNumFile returns false.
@@ -151,9 +170,8 @@ func checkAndSaveSeqNum(logger log.Logger, seqNum int, mrseqPath string) (should
 }
 
 // runCmd runs the command (extracted from cfg) in the given dir (assumed to exist).
-func runCmd(logger log.Logger, dir string, cfg handlerSettings) (err error) {
+func runCmd(logger log.Logger, cmd string, dir string, cfg handlerSettings) (err error) {
 	logger.Log("event", "executing command", "output", dir)
-	var cmd string
 	var scenario string
 
 	begin := time.Now()

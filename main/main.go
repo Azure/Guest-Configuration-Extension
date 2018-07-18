@@ -32,14 +32,18 @@ var (
 	// number. Stored under dataDir. This file is auto-preserved by the agent.
 	mostRecentSequence = "mrseq"
 
-	// downloadDir is where we store the downloaded files in the "{downloadDir}/{seqnum}/file"
-	// format and the logs as "{downloadDir}/{seqnum}/std(out|err)". Stored under dataDir
-	downloadDir = "GCAgent"
+	// agentDir is where the agent is stored
+	// stored until dataDir
+	agentDir = "GCAgent"
 
 
 	// agentZip is the directory where the agent package is stored
 	// it will be unzipped into {dataDir}/GCAgent/{version}/agent
-	agentZip = "../agent/GCAgentx64.zip"
+	agentZip = "../agent/DesiredStateConfiguration_1.0.0.zip"
+
+	// agentName contains the .sh files
+	// stored under the agent version
+	agentName = "DesiredStateConfiguration"
 )
 
 func main() {
