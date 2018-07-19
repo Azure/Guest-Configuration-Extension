@@ -94,14 +94,20 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 		return "", errors.Wrap(err, "failed to parse version string")
 	}
 
-	// unzip the file
+	// unzip the file only if this version does not already exist
 	dir := filepath.Join(dataDir, agentDir, version)
-	_, err = unzip(logger, agentZip, dir)
+	if _, err = os.Stat(dir); os.IsNotExist(err) {
+		// directory does not exist
+		_, err = unzip(logger, agentZip, dir)
+	} else {
+		logger.Log("message", "this version of the agent already exists", "version", version)
+		return "", errors.Wrap(err, "this version of the agent already exists")
+	}
 
 	// agent directory
 	agentDirectory := filepath.Join(dir, agentName)
 
-	// run install.sh and enable.sh
+	// run install.sh and enable.sh from the agent directory
 	runErr := runCmd(logger, "bash ./install.sh", agentDirectory, cfg)
 	if runErr != nil {
 		logger.Log("message", "error running install.sh", "error", runErr)
@@ -204,6 +210,7 @@ func unzip(logger log.Logger, source string, dest string) ([]string, error) {
 	for _, f := range r.File {
 		rc, err := f.Open()
 		if err != nil {
+			logger.Log("event", "failed to open directory", "error", err)
 			return filenames, err
 		}
 		defer rc.Close()
@@ -218,16 +225,19 @@ func unzip(logger log.Logger, source string, dest string) ([]string, error) {
 		} else {
 			// make file
 			if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+				logger.Log("event", "failed to copy file", "error", err)
 				return filenames, err
 			}
 			outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if err != nil {
+				logger.Log("event", "failed to open file", "error", err)
 				return filenames, err
 			}
 			_, err = io.Copy(outFile, rc)
 			// close the file without defer to close before next iteration of loop
 			outFile.Close()
 			if err != nil {
+				logger.Log("event", "failed to close file", "error", err)
 				return filenames, err
 			}
 		}

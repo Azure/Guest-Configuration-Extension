@@ -134,8 +134,31 @@ func Test_unzip_pass(t *testing.T) {
 	require.NotEmpty(t, filenames)
 	t.Log(filenames)
 
-	// delete the test directory
+	version = "1.2.0"
+	dir = filepath.Join(dataDir, agentDir, version)
+	t.Log(dir)
+	filenames, err = unzip(log.NewNopLogger(), agentZip, dir)
+	require.Nil(t, err)
+	require.NotEmpty(t, filenames)
+	t.Log(filenames)
+
+	version = "3.0.0"
+	dir = filepath.Join(dataDir, agentDir, version)
+	t.Log(dir)
+	filenames, err = unzip(log.NewNopLogger(), agentZip, dir)
+	require.Nil(t, err)
+	require.NotEmpty(t, filenames)
+	t.Log(filenames)
+}
+
+func Test_cleanUpTests(t *testing.T) {
+	// delete the testing directory
+	// if it does not exist, this will do nothing
 	os.RemoveAll(agentDir)
 
-	// TODO: require that the directory is deleted
+	exists := true
+	if _, err := os.Stat(agentDir); os.IsNotExist(err) {
+		exists = false
+	}
+	require.False(t, exists)
 }
