@@ -8,11 +8,12 @@ import (
 	"github.com/Azure/custom-script-extension-linux/pkg/seqnum"
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
-	"archive/zip"
 	"path/filepath"
-	"io"
 	"fmt"
 	"time"
+	"archive/zip"
+	"io"
+	"regexp"
 )
 
 type cmdfunc func(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error)
@@ -28,7 +29,7 @@ type cmd struct {
 }
 
 const (
-	fullName                = "Microsoft.Azure.Extensions.CustomScript"
+	fullName                = "Microsoft.Azure.Extensions.GuestConfigurationForLinux"
 	maxTailLen              = 4 * 1024 // length of max stdout/stderr to be transmitted in .status file
 	maxTelemetryTailLen int = 1800
 )
@@ -86,11 +87,33 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 		return "", errors.Wrap(err, "failed to get configuration")
 	}
 
-	dir := filepath.Join(dataDir, downloadDir, fmt.Sprintf("%d", seqNum))
-	_, err = unzip("GCAgentx64.zip", "Agent")
+	// parse the version string
+	version, err := parseVersionString(agentZip)
+	if err != nil {
+		logger.Log("message", "failed to parse version string", "error", err, "agentName", agentZip)
+		return "", errors.Wrap(err, "failed to parse version string")
+	}
 
-	// run agent scripts
-	runErr := runCmd(logger, dir, cfg)
+	// unzip the file only if this version does not already exist
+	dir := filepath.Join(dataDir, agentDir, version)
+	if _, err = os.Stat(dir); os.IsNotExist(err) {
+		// directory does not exist
+		_, err = unzip(logger, agentZip, dir)
+	} else {
+		logger.Log("message", "this version of the agent already exists", "version", version)
+		return "", errors.Wrap(err, "this version of the agent already exists")
+	}
+
+	// agent directory
+	agentDirectory := filepath.Join(dir, agentName)
+
+	// run install.sh and enable.sh from the agent directory
+	runErr := runCmd(logger, "bash ./install.sh", agentDirectory, cfg)
+	if runErr != nil {
+		logger.Log("message", "error running install.sh", "error", runErr)
+	} else {
+		runErr = runCmd(logger, "bash ./enable.sh", agentDirectory, cfg)
+	}
 
 	// collect the logs if available
 	stdoutF, stderrF := logPaths(dir)
@@ -122,6 +145,15 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 	return msg, runErr
 }
 
+func parseVersionString(agentName string) (version string, err error) {
+	r, _ := regexp.Compile("^([./a-zA-Z0-9]*)_([0-9.]*)?[.](.*)$")
+	matches := r.FindStringSubmatch(agentName)
+	if len(matches) != 4 {
+		return "", errors.New("incorrect naming format for agent")
+	}
+	return matches[2], nil
+}
+
 // checkAndSaveSeqNum checks if the given seqNum is already processed
 // according to the specified seqNumFile and if so, returns true,
 // otherwise saves the given seqNum into seqNumFile returns false.
@@ -135,15 +167,17 @@ func checkAndSaveSeqNum(logger log.Logger, seqNum int, mrseqPath string) (should
 		// store sequence number is equal or greater than the current sequence number
 		return true, nil
 	}
+	if err := seqnum.Set(mrseqPath, seqNum); err != nil {
+		return false, errors.Wrap(err, "failed to save the sequence number")
+	}
 	logger.Log("event", "seqnum saved", "path", mrseqPath)
 
 	return false, nil
 }
 
 // runCmd runs the command (extracted from cfg) in the given dir (assumed to exist).
-func runCmd(logger log.Logger, dir string, cfg handlerSettings) (err error) {
+func runCmd(logger log.Logger, cmd string, dir string, cfg handlerSettings) (err error) {
 	logger.Log("event", "executing command", "output", dir)
-	var cmd string
 	var scenario string
 
 	begin := time.Now()
@@ -163,19 +197,20 @@ func runCmd(logger log.Logger, dir string, cfg handlerSettings) (err error) {
 
 // decompresses a zip archive, moving all files and folders within the zip file
 // to an output directory
-func unzip(source string, dest string) ([]string, error) {
+func unzip(logger log.Logger, source string, dest string) ([]string, error) {
+	logger.Log("event", "unzipping agent")
 	var filenames []string
-
 	r, err := zip.OpenReader(source)
 	if err != nil {
-		return filenames, err
+		logger.Log("event", "failed to open zip", "error", err)
+		return filenames, errors.Wrap(err, "failed to open zip")
 	}
 	defer r.Close()
 
 	for _, f := range r.File {
-
 		rc, err := f.Open()
 		if err != nil {
+			logger.Log("event", "failed to open directory", "error", err)
 			return filenames, err
 		}
 		defer rc.Close()
@@ -185,28 +220,24 @@ func unzip(source string, dest string) ([]string, error) {
 		filenames = append(filenames, fpath)
 
 		if f.FileInfo().IsDir() {
-
 			// make folder
 			os.MkdirAll(fpath, os.ModePerm)
-
 		} else {
-
 			// make file
 			if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
+				logger.Log("event", "failed to copy file", "error", err)
 				return filenames, err
 			}
-
 			outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if err != nil {
+				logger.Log("event", "failed to open file", "error", err)
 				return filenames, err
 			}
-
 			_, err = io.Copy(outFile, rc)
-
 			// close the file without defer to close before next iteration of loop
 			outFile.Close()
-
 			if err != nil {
+				logger.Log("event", "failed to close file", "error", err)
 				return filenames, err
 			}
 		}
