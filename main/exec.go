@@ -20,12 +20,13 @@ func Exec(cmd, workdir string, stdout, stderr io.WriteCloser) (int, error) {
 	defer stdout.Close()
 	defer stderr.Close()
 
-	c := exec.Command("/bin/sh", "-c", cmd)
+	c := exec.Command("/bin/sh", cmd)
 	c.Dir = workdir
 	c.Stdout = stdout
 	c.Stderr = stderr
 
 	err := c.Run()
+
 	exitErr, ok := err.(*exec.ExitError)
 	if ok {
 		if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
@@ -55,6 +56,7 @@ func ExecCmdInDir(cmd, workdir string) error {
 	}
 
 	_, err = Exec(cmd, workdir, outF, errF)
+
 	return err
 }
 

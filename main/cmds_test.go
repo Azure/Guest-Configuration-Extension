@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"os"
 
+	"fmt"
 )
 
 func Test_commandsExist(t *testing.T) {
@@ -115,6 +116,27 @@ func Test_runCmd_pass(t *testing.T) {
 	require.Nil(t, err)
 }
 
+func Test_runCmd_withTestFile(t *testing.T) {
+	dir := filepath.Join(dataDir, "testing")
+	_, err := unzip(log.NewNopLogger(), "../testing/testing.zip", dataDir)
+
+	// print files in directory
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		t.Log(err)
+	}
+
+	for _, f := range files {
+		fmt.Println(f.Name())
+	}
+
+	err = runCmd(log.NewNopLogger(), "testing.sh", dir, handlerSettings{})
+	stdout, _ := ioutil.ReadFile(filepath.Join(dataDir, "testing", "stdout"))
+	t.Log(string(stdout))
+
+	require.Nil(t, err)
+}
+
 func Test_unzip_fail(t *testing.T) {
 	_, err := unzip(log.NewNopLogger(), "","agent")
 	require.NotNil(t, err)
@@ -154,11 +176,15 @@ func Test_unzip_pass(t *testing.T) {
 func Test_cleanUpTests(t *testing.T) {
 	// delete the testing directory
 	// if it does not exist, this will do nothing
-	os.RemoveAll(agentDir)
+	files := [3]string{agentDir, "testing", "__MACOSX"}
 
-	exists := true
-	if _, err := os.Stat(agentDir); os.IsNotExist(err) {
-		exists = false
+	for _, file := range(files) {
+		os.RemoveAll(file)
+
+		exists := true
+		if _, err := os.Stat(agentDir); os.IsNotExist(err) {
+			exists = false
+		}
+		require.False(t, exists)
 	}
-	require.False(t, exists)
 }
