@@ -13,6 +13,8 @@ install:
   - sudo npm install -g azure-cli
   - go get -u github.com/golang/lint/golint
   - go get -u github.com/ahmetalpbalkan/govvv
+  - go get -u github.com/tools/godep
+  - godep restore
 before_script:
   - docker version
   - docker info
