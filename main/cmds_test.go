@@ -122,9 +122,8 @@ func Test_runCmd_withTestFile(t *testing.T) {
 
 	// print files in directory
 	files, err := ioutil.ReadDir(dir)
-	if err != nil {
-		t.Log(err)
-	}
+	t.Log(err)
+	require.Nil(t, err)
 
 	for _, f := range files {
 		fmt.Println(f.Name())
