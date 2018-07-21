@@ -19,6 +19,5 @@ before_script:
   - docker info
   - azure telemetry --disable && azure -v
 script:
-  - test -z "$(gofmt -s -l -w $(find . -type f -name '*.go' -not -path './vendor/*') | tee /dev/stderr)"
   - go list ./... | grep -v '/vendor/' | xargs go test -v -cover
   - make binary

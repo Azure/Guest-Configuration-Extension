@@ -5,15 +5,15 @@ import (
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 
+	"archive/zip"
+	"fmt"
 	"github.com/Azure/custom-script-extension-linux/pkg/seqnum"
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
-	"path/filepath"
-	"fmt"
-	"time"
-	"archive/zip"
 	"io"
+	"path/filepath"
 	"regexp"
+	"time"
 )
 
 type cmdfunc func(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error)
@@ -24,7 +24,7 @@ type cmd struct {
 	f                  cmdfunc // associated function
 	name               string  // human readable string
 	shouldReportStatus bool    // determines if running this should log to a .status file
-	pre 			   prefunc // executed before any status is reported
+	pre                prefunc // executed before any status is reported
 	failExitCode       int     // exitCode to use when commands fail
 }
 
