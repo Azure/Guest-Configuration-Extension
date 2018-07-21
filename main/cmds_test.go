@@ -130,7 +130,7 @@ func Test_runCmd_withTestFile(t *testing.T) {
 		fmt.Println(f.Name())
 	}
 
-	err = runCmd(log.NewNopLogger(), "testing.sh", dir, handlerSettings{})
+	err = runCmd(log.NewNopLogger(), "bash testing.sh", dir, handlerSettings{})
 	stdout, _ := ioutil.ReadFile(filepath.Join(dataDir, "testing", "stdout"))
 	t.Log(string(stdout))
 
