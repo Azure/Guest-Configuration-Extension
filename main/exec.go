@@ -20,7 +20,7 @@ func Exec(cmd, workdir string, stdout, stderr io.WriteCloser) (int, error) {
 	defer stdout.Close()
 	defer stderr.Close()
 
-	c := exec.Command("/bin/sh", cmd)
+	c := exec.Command("/bin/sh", "-c", cmd)
 	c.Dir = workdir
 	c.Stdout = stdout
 	c.Stderr = stderr

@@ -3,11 +3,11 @@ package main
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/go-kit/kit/log"
+	"github.com/stretchr/testify/require"
 	"io/ioutil"
-	"path/filepath"
 	"os"
+	"path/filepath"
 
 	"fmt"
 )
@@ -130,7 +130,7 @@ func Test_runCmd_withTestFile(t *testing.T) {
 		fmt.Println(f.Name())
 	}
 
-	err = runCmd(log.NewNopLogger(), "testing.sh", dir, handlerSettings{})
+	err = runCmd(log.NewNopLogger(), "bash ./testing.sh", dir, handlerSettings{})
 	stdout, _ := ioutil.ReadFile(filepath.Join(dataDir, "testing", "stdout"))
 	t.Log(string(stdout))
 
@@ -138,11 +138,11 @@ func Test_runCmd_withTestFile(t *testing.T) {
 }
 
 func Test_unzip_fail(t *testing.T) {
-	_, err := unzip(log.NewNopLogger(), "","agent")
+	_, err := unzip(log.NewNopLogger(), "", "agent")
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), `failed to open zip`)
 
-	_, err = unzip(log.NewNopLogger(), "hello.zip","agent")
+	_, err = unzip(log.NewNopLogger(), "hello.zip", "agent")
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), `failed to open zip`)
 }
@@ -178,7 +178,7 @@ func Test_cleanUpTests(t *testing.T) {
 	// if it does not exist, this will do nothing
 	files := [3]string{agentDir, "testing", "__MACOSX"}
 
-	for _, file := range(files) {
+	for _, file := range files {
 		os.RemoveAll(file)
 
 		exists := true

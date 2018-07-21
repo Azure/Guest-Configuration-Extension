@@ -36,7 +36,6 @@ var (
 	// stored until dataDir
 	agentDir = "GCAgent"
 
-
 	// agentZip is the directory where the agent package is stored
 	// it will be unzipped into {dataDir}/GCAgent/{version}/agent
 	agentZip = "../agent/DesiredStateConfiguration_1.0.0.zip"
