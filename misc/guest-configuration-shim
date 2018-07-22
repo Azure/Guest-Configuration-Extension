@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 set -euo pipefail
 readonly SCRIPT_DIR=$(dirname "$0")
 readonly LOG_DIR="/var/log/azure/guest-configuration"
