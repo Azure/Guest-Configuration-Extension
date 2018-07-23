@@ -1,0 +1,16 @@
+[req]
+default_bits           = 2048
+default_keyfile        = key.pem # name of generated keys
+encrypt_key            = no
+default_md             = sha256
+distinguished_name     = req_distinguished_name
+prompt                 = no
+req_extensions         = v3_ca
+
+[ req_distinguished_name ]
+0.organizationName     = ExampleCompany (company)
+
+[ v3_ca ]
+basicConstraints       = CA:TRUE
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always,issuer:always

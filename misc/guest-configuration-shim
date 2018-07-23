@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 set -euo pipefail
 readonly SCRIPT_DIR=$(dirname "$0")

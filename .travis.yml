@@ -10,7 +10,6 @@ install:
   - curl -sL https://deb.nodesource.com/setup_6.x | sudo bash -
   - sudo apt-get install -qqy nodejs
   - sudo npm install -g npm
-  - sudo npm install -g azure-cli
   - go get -u golang.org/x/lint/golint
   - go get -u github.com/ahmetalpbalkan/govvv
   - go get -u github.com/tools/godep
@@ -18,9 +17,9 @@ install:
 before_script:
   - docker version
   - docker info
-  - azure telemetry --disable && azure -v
 script:
   - test -z "$(gofmt -s -l -w -e $(find . -type f -name '*.go' -not -path './vendor/*') | tee /dev/stderr)"
   - test -z "$(golint . | tee /dev/stderr)"
   - test -z "$(go vet -v $(go list ./... | grep -v '/vendor/') | tee /dev/stderr)"
   - make binary
+  - bats integration-test/test
