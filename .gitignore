@@ -329,6 +329,7 @@ ASALocalRun/
 # MFractors (Xamarin productivity tool) working folder 
 .mfractor/
 .DS_Store
+__MACOSX
 
 # Binary
 guest-configuration-extension

@@ -3,11 +3,12 @@ package main
 import (
 	"testing"
 
-	"github.com/go-kit/kit/log"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/go-kit/kit/log"
+	"github.com/stretchr/testify/require"
 
 	"fmt"
 )
@@ -151,7 +152,7 @@ func Test_unzip_pass(t *testing.T) {
 	version := "0.0.1"
 	dir := filepath.Join(dataDir, agentDir, version)
 	t.Log(dir)
-	filenames, err := unzip(log.NewNopLogger(), agentZip, dir)
+	filenames, err := unzip(log.NewNopLogger(), "../"+agentZip, dir)
 	require.Nil(t, err)
 	require.NotEmpty(t, filenames)
 	t.Log(filenames)
@@ -159,7 +160,7 @@ func Test_unzip_pass(t *testing.T) {
 	version = "1.2.0"
 	dir = filepath.Join(dataDir, agentDir, version)
 	t.Log(dir)
-	filenames, err = unzip(log.NewNopLogger(), agentZip, dir)
+	filenames, err = unzip(log.NewNopLogger(), "../"+agentZip, dir)
 	require.Nil(t, err)
 	require.NotEmpty(t, filenames)
 	t.Log(filenames)
@@ -167,7 +168,7 @@ func Test_unzip_pass(t *testing.T) {
 	version = "3.0.0"
 	dir = filepath.Join(dataDir, agentDir, version)
 	t.Log(dir)
-	filenames, err = unzip(log.NewNopLogger(), agentZip, dir)
+	filenames, err = unzip(log.NewNopLogger(), "../"+agentZip, dir)
 	require.Nil(t, err)
 	require.NotEmpty(t, filenames)
 	t.Log(filenames)

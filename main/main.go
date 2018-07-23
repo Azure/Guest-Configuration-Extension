@@ -38,7 +38,7 @@ var (
 
 	// agentZip is the directory where the agent package is stored
 	// it will be unzipped into {dataDir}/GCAgent/{version}/agent
-	agentZip = "../agent/DesiredStateConfiguration_1.0.0.zip"
+	agentZip = "agent/DesiredStateConfiguration_1.0.0.zip"
 
 	// agentName contains the .sh files
 	// stored under the agent version

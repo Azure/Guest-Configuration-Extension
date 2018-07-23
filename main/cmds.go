@@ -7,13 +7,14 @@ import (
 
 	"archive/zip"
 	"fmt"
-	"github.com/Azure/custom-script-extension-linux/pkg/seqnum"
-	"github.com/go-kit/kit/log"
-	"github.com/pkg/errors"
 	"io"
 	"path/filepath"
 	"regexp"
 	"time"
+
+	"github.com/Azure/custom-script-extension-linux/pkg/seqnum"
+	"github.com/go-kit/kit/log"
+	"github.com/pkg/errors"
 )
 
 type cmdfunc func(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error)
@@ -108,6 +109,7 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 	agentDirectory := filepath.Join(dir, agentName)
 
 	// run install.sh and enable.sh from the agent directory
+	logger.Log("event", "Running the installation/enabling commands")
 	runErr := runCmd(logger, "bash ./install.sh", agentDirectory, cfg)
 	if runErr != nil {
 		logger.Log("message", "error running install.sh", "error", runErr)
