@@ -1,10 +1,9 @@
 package main
 
 import (
-	"fmt"
-
-	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
+	"fmt"
+	"github.com/pkg/errors"
 )
 
 // Refer to http://json-schema.org/ on how to use JSON Schemas.
@@ -12,7 +11,7 @@ import (
 const (
 	publicSettingsSchema = `{
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "title": "Custom Script - Public Settings",
+  "title": "Guest Configuration - Public Settings",
   "type": "object",
   "properties": {
     "commandToExecute": {
@@ -45,7 +44,7 @@ const (
 
 	protectedSettingsSchema = `{
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "title": "Custom Script - Protected Settings",
+  "title": "Guest Configuration - Protected Settings",
   "type": "object",
   "properties": {
     "commandToExecute": {
