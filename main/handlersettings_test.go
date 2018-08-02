@@ -1,15 +1,11 @@
 package main
 
 import "testing"
-import "github.com/stretchr/testify/require"
+import (
+	"github.com/stretchr/testify/require"
+)
 
 func Test_handlerSettingsValidate(t *testing.T) {
-	// commandToExecute not specified
-	require.Equal(t, errCmdMissing, handlerSettings{
-		publicSettings{},
-		protectedSettings{},
-	}.validate())
-
 	// commandToExecute specified twice
 	require.Equal(t, errCmdTooMany, handlerSettings{
 		publicSettings{CommandToExecute: "foo"},
@@ -50,13 +46,25 @@ func Test_handlerSettingsValidate(t *testing.T) {
 	}.validate())
 }
 
-func Test_commandToExecutePrivateIfNotPublic(t *testing.T) {
+func Test_commandToExecutePrivateOrPublicOrEmpty(t *testing.T) {
 	testSubject := handlerSettings{
 		publicSettings{},
 		protectedSettings{CommandToExecute: "bar"},
 	}
-
 	require.Equal(t, "bar", testSubject.commandToExecute())
+
+	testSubject = handlerSettings{
+		publicSettings{CommandToExecute: "date"},
+		protectedSettings{},
+	}
+	require.Equal(t, "date", testSubject.commandToExecute())
+
+	testSubject = handlerSettings{
+		publicSettings{},
+		protectedSettings{},
+	}
+
+	require.Equal(t, "", testSubject.commandToExecute())
 }
 
 func Test_scriptPrivateIfNotPublic(t *testing.T) {

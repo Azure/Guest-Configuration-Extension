@@ -13,7 +13,6 @@ var (
 	errCmdTooMany                = errors.New("'commandToExecute' was specified both in public and protected settings; it must be specified only once")
 	errScriptTooMany             = errors.New("'script' was specified both in public and protected settings; it must be specified only once")
 	errCmdAndScript              = errors.New("'commandToExecute' and 'script' were both specified, but only one is validate at a time")
-	errCmdMissing                = errors.New("'commandToExecute' is not specified")
 )
 
 // handlerSettings holds the configuration of the extension handler.
@@ -26,7 +25,10 @@ func (s *handlerSettings) commandToExecute() string {
 	if s.publicSettings.CommandToExecute != "" {
 		return s.publicSettings.CommandToExecute
 	}
-	return s.protectedSettings.CommandToExecute
+	if s.protectedSettings.CommandToExecute != "" {
+		return s.protectedSettings.CommandToExecute
+	}
+	return ""
 }
 
 func (s *handlerSettings) script() string {
@@ -46,9 +48,6 @@ func (s *handlerSettings) fileUrls() []string {
 // validate makes logical validation on the handlerSettings which already passed
 // the schema validation.
 func (h handlerSettings) validate() error {
-	if h.commandToExecute() == "" && h.script() == "" {
-		return errCmdMissing
-	}
 	if h.publicSettings.CommandToExecute != "" && h.protectedSettings.CommandToExecute != "" {
 		return errCmdTooMany
 	}
