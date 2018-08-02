@@ -11,6 +11,7 @@ install:
   - sudo apt-get install -qqy nodejs
   - sudo npm install -g npm
   - sudo npm install -g azure-cli
+  - go get -u golang.org/x/lint/golint
   - go get -u github.com/ahmetalpbalkan/govvv
   - go get -u github.com/tools/godep
   - godep restore

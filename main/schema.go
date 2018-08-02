@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/xeipuuv/gojsonschema"
 	"fmt"
 	"github.com/pkg/errors"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 // Refer to http://json-schema.org/ on how to use JSON Schemas.
