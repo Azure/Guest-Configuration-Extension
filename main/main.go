@@ -128,7 +128,7 @@ func printUsage(args []string) {
 	fmt.Printf("Usage: %s ", "main.exe")
 	i := 0
 	for k := range cmds {
-		fmt.Printf(k)
+		fmt.Println(k)
 		if i != len(cmds)-1 {
 			fmt.Printf("|")
 		}

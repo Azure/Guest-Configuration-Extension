@@ -11,7 +11,7 @@ bundle: clean binary
 	zip -j ./$(BUNDLEDIR)/$(BUNDLE) ./misc/HandlerManifest.json
 	zip -j ./$(BUNDLEDIR)/$(BUNDLE) ./misc/manifest.xml
 
-binary: clean
+binary: clean test
 	if [ -z "$$GOPATH" ]; then \
 		echo "GOPATH is not set"; \
 		exit 1; \
@@ -27,7 +27,10 @@ binary: clean
 		-o $(BINDIR)/$(BIN) ./main
 	cp ./misc/guest-configuration-shim ./$(BINDIR)
 
+test: clean
+	go list ./... | grep -v '/vendor/' | xargs go test -cover
+
 clean:
 	rm -rf "$(BINDIR)" "$(BUNDLEDIR)"
 
-.PHONY: clean binary
+.PHONY: clean binary test

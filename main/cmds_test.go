@@ -10,7 +10,6 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/require"
 
-	"fmt"
 )
 
 func Test_commandsExist(t *testing.T) {
@@ -79,16 +78,12 @@ func Test_checkAndSaveSeqNum(t *testing.T) {
 }
 
 func Test_parseVersionString_fail(t *testing.T) {
-	version, err := parseVersionString("helloWorld.zip")
-	t.Log(version)
-	t.Log(err)
+	_, err := parseVersionString("helloWorld.zip")
 	require.NotNil(t, err)
 }
 
 func Test_parseVersionString_success(t *testing.T) {
-	version, err := parseVersionString(agentZip)
-	t.Log(version)
-	t.Log(err)
+	_, err := parseVersionString(agentZip)
 	require.Nil(t, err)
 }
 
@@ -122,18 +117,12 @@ func Test_runCmd_withTestFile(t *testing.T) {
 	_, err := unzip(log.NewNopLogger(), "../testing/testing.zip", dataDir)
 
 	// print files in directory
-	files, err := ioutil.ReadDir(dir)
+	_, err = ioutil.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	for _, f := range files {
-		fmt.Println(f.Name())
-	}
-
 	err = runCmd(log.NewNopLogger(), "bash ./testing.sh", dir, handlerSettings{})
-	stdout, _ := ioutil.ReadFile(filepath.Join(dataDir, "testing", "stdout"))
-	t.Log(string(stdout))
 
 	require.Nil(t, err)
 }
@@ -151,27 +140,21 @@ func Test_unzip_fail(t *testing.T) {
 func Test_unzip_pass(t *testing.T) {
 	version := "0.0.1"
 	dir := filepath.Join(dataDir, agentDir, version)
-	t.Log(dir)
 	filenames, err := unzip(log.NewNopLogger(), "../"+agentZip, dir)
 	require.Nil(t, err)
 	require.NotEmpty(t, filenames)
-	t.Log(filenames)
 
 	version = "1.2.0"
 	dir = filepath.Join(dataDir, agentDir, version)
-	t.Log(dir)
 	filenames, err = unzip(log.NewNopLogger(), "../"+agentZip, dir)
 	require.Nil(t, err)
 	require.NotEmpty(t, filenames)
-	t.Log(filenames)
 
 	version = "3.0.0"
 	dir = filepath.Join(dataDir, agentDir, version)
-	t.Log(dir)
 	filenames, err = unzip(log.NewNopLogger(), "../"+agentZip, dir)
 	require.Nil(t, err)
 	require.NotEmpty(t, filenames)
-	t.Log(filenames)
 }
 
 func Test_cleanUpTests(t *testing.T) {
