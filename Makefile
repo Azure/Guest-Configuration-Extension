@@ -11,7 +11,7 @@ bundle: clean binary
 	zip -j ./$(BUNDLEDIR)/$(BUNDLE) ./misc/HandlerManifest.json
 	zip -j ./$(BUNDLEDIR)/$(BUNDLE) ./misc/manifest.xml
 
-binary: clean test
+binary: clean
 	if [ -z "$$GOPATH" ]; then \
 		echo "GOPATH is not set"; \
 		exit 1; \
@@ -21,6 +21,8 @@ binary: clean test
 	go get github.com/tools/godep
 
 	$$GOPATH/bin/godep restore
+
+	go list ./... | grep -v '/vendor/' | xargs go test -cover
 
 	GOOS=linux GOARCH=amd64 govvv build -v \
 		-ldflags "-X main.Version=`grep -E -m 1 -o  '<Version>(.*)</Version>' misc/manifest.xml | awk -F">" '{print $$2}' | awk -F"<" '{print $$1}'`" \
