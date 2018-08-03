@@ -9,7 +9,6 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/require"
-
 )
 
 func Test_commandsExist(t *testing.T) {
