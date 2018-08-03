@@ -28,9 +28,6 @@ binary: clean test
 	cp ./misc/guest-configuration-shim ./$(BINDIR)
 
 test: clean
-	gofmt -s -l -w -e $$(find . -type f -name '*.go' -not -path './vendor/*') | tee /dev/stderr
-	test -z "$$(golint . | tee /dev/stderr)"
-	test -z "$$(go vet -v $$(go list ./... | grep -v '/vendor/') | tee /dev/stderr)"
 	go list ./... | grep -v '/vendor/' | xargs go test -cover
 
 clean:
