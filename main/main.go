@@ -4,13 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension/status"
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
+	"strconv"
 )
 
 // flags for debugging and printing detailed reports
@@ -55,10 +55,10 @@ func main() {
 	cmd := parseCmd(flag.Args())
 	logger = log.With(logger, "operation", cmd.name)
 
-	// print flags and command name
-	fmt.Println("Verbose is " + strconv.FormatBool(flags.verbose))
-	fmt.Println("Debug is " + strconv.FormatBool(flags.debug))
-	fmt.Println(cmd.name + " agent")
+	// log flag settings and command name
+	logger.Log("message", "flags settings", "verbose", strconv.FormatBool(flags.verbose),
+		"debug", strconv.FormatBool(flags.debug))
+	logger.Log("command name", cmd.name)
 
 	// parse extension environment
 	hEnv, err := vmextension.GetHandlerEnv()
@@ -128,9 +128,9 @@ func printUsage(args []string) {
 	fmt.Printf("Usage: %s ", "main.exe")
 	i := 0
 	for k := range cmds {
-		fmt.Println(k)
+		fmt.Print(k)
 		if i != len(cmds)-1 {
-			fmt.Printf("|")
+			fmt.Printf(" | ")
 		}
 		i++
 	}

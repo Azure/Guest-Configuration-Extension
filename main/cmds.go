@@ -98,11 +98,17 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 	// unzip the file only if this version does not already exist
 	dir := filepath.Join(dataDir, agentDir, version)
 	if _, err = os.Stat(dir); os.IsNotExist(err) {
-		// directory does not exist
+		// current version directory does not exist, so can unzip
 		_, err = unzip(logger, agentZip, dir)
 	} else {
 		logger.Log("message", "this version of the agent already exists", "version", version)
 		return "", errors.Wrap(err, "this version of the agent already exists")
+	}
+
+	// check that unzip was successful
+	if err != nil {
+		logger.Log("message", "failed to unzip agent", "error", err)
+		return "", errors.Wrap(err, "failed to unzip agent")
 	}
 
 	// agent directory
@@ -200,11 +206,10 @@ func runCmd(logger log.Logger, cmd string, dir string, cfg handlerSettings) (err
 // decompresses a zip archive, moving all files and folders within the zip file
 // to an output directory
 func unzip(logger log.Logger, source string, dest string) ([]string, error) {
-	logger.Log("event", "unzipping agent")
+	logger.Log("event", "begin unzipping agent")
 	var filenames []string
 	r, err := zip.OpenReader(source)
 	if err != nil {
-		logger.Log("event", "failed to open zip", "error", err)
 		return filenames, errors.Wrap(err, "failed to open zip")
 	}
 	defer r.Close()
@@ -212,8 +217,7 @@ func unzip(logger log.Logger, source string, dest string) ([]string, error) {
 	for _, f := range r.File {
 		rc, err := f.Open()
 		if err != nil {
-			logger.Log("event", "failed to open directory", "error", err)
-			return filenames, err
+			return filenames, errors.Wrap(err, "failed to open file")
 		}
 		defer rc.Close()
 
@@ -227,23 +231,21 @@ func unzip(logger log.Logger, source string, dest string) ([]string, error) {
 		} else {
 			// make file
 			if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
-				logger.Log("event", "failed to copy file", "error", err)
-				return filenames, err
+				return filenames, errors.Wrap(err, "failed to create directory")
 			}
 			outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if err != nil {
-				logger.Log("event", "failed to open file", "error", err)
-				return filenames, err
+				return filenames, errors.Wrap(err, "failed to open directory at current path")
 			}
 			_, err = io.Copy(outFile, rc)
 			// close the file without defer to close before next iteration of loop
 			outFile.Close()
 			if err != nil {
-				logger.Log("event", "failed to close file", "error", err)
-				return filenames, err
+				return filenames, errors.Wrap(err, "failed to close file")
 			}
 		}
 	}
+	logger.Log("event", "unzipping successful")
 	return filenames, nil
 }
 
