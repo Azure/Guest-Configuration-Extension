@@ -38,8 +38,7 @@ const (
 var (
 	telemetry = sendTelemetry(newTelemetryEventSender(), fullName, Version)
 
-	// allowed user inputsls
-	
+	// allowed user inputs
 	cmds = map[string]cmd{
 		"install":   {install, "install", false, nil, 100},
 		"uninstall": {uninstall, "uninstall", false, nil, 200},
