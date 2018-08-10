@@ -40,11 +40,11 @@ var (
 
 	// allowed user inputs
 	cmds = map[string]cmd{
-		"install":   {install, "install", false, nil, 52},
-		"uninstall": {uninstall, "uninstall", false, nil, 3},
-		"enable":    {enable, "enable", true, enablePre, 3},
-		"update":    {update, "update", true, nil, 3},
-		"disable":   {disable, "disable", true, nil, 3},
+		"install":   {install, "install", false, nil, installCode},
+		"enable":    {enable, "enable", true, enablePre, enableCode},
+		"update":    {update, "update", true, nil, updateCode},
+		"disable":   {disable, "disable", true, nil, disableCode},
+		"uninstall": {uninstall, "uninstall", false, nil, uninstallCode},
 	}
 )
 
@@ -57,17 +57,6 @@ func install(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int)
 	logger.Log("event", "installed")
 
 	return "", nil
-}
-
-func uninstall(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
-	return "", nil
-}
-
-func min(a int, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 func enablePre(logger log.Logger, seqNum int) error {
@@ -151,6 +140,13 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 		logger.Log("event", "enable failed")
 	}
 	return msg, runErr
+}
+
+func min(a int, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func parseVersionString(agentName string) (version string, err error) {
@@ -254,5 +250,9 @@ func update(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 }
 
 func disable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
+	return "", nil
+}
+
+func uninstall(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
 	return "", nil
 }
