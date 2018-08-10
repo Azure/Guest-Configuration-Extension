@@ -110,14 +110,14 @@ func parseCmd(args []string) cmd {
 			fmt.Println("Too many arguments")
 		}
 		printUsage(args)
-		os.Exit(2)
+		os.Exit(invalidCode)
 	}
 	// ensure arguments passed are all lower case
 	cmd, ok := cmds[strings.ToLower(args[0])]
 	if !ok {
 		printUsage(args)
 		fmt.Printf("Incorrect command: %q\n", args[0])
-		os.Exit(2)
+		os.Exit(invalidCode)
 	}
 	return cmd
 }
