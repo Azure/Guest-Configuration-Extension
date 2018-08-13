@@ -66,51 +66,68 @@ func enablePre(logger log.Logger, seqNum int) error {
 		return errors.Wrap(err, "failed to process seqnum")
 	} else if shouldExit {
 		logger.Log("event", "exit", "message", "this guest configuration is already processed, will not run again")
+		// check agent health
+		logger.Log("event", "checking agent health")
+		agentDirectory := filepath.Join(dataDir, agentDir, agentName)
+		shouldExit, err := installAndEnable(logger, agentDirectory)
+		if err != nil {
+			logger.Log("message", "error running installation and enable scripts", "error", err)
+		}
+		if shouldExit == true {
+			os.Exit(0)
+		}
 	}
 	return nil
 }
 
+func installAndEnable(logger log.Logger, agentDirectory string) (bool, error) {
+	// check if agent directory exists
+	shouldExit := true
+	var runErr error = nil
+	if _, err := os.Stat(agentDirectory); os.IsNotExist(err) {
+		shouldExit = false
+	} else {
+		// run install.sh and enable.sh from the agent directory
+		logger.Log("event", "Running the installation/enabling commands")
+		runErr = runCmd(logger, "bash ./install.sh", agentDirectory)
+		if runErr != nil {
+			logger.Log("message", "error running install.sh", "error", runErr)
+		} else {
+			runErr = runCmd(logger, "bash ./enable.sh", agentDirectory)
+			if runErr != nil {
+				logger.Log("message", "error running enable.sh", "error", runErr)
+			}
+		}
+	}
+	return shouldExit, runErr
+}
+
 func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
 	// parse the extension handler settings (file not available prior to 'enable')
-	cfg, err := parseAndValidateSettings(logger, hEnv.HandlerEnvironment.ConfigFolder)
+	_, err := parseAndValidateSettings(logger, hEnv.HandlerEnvironment.ConfigFolder)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get configuration")
 	}
 
-	// parse the version string
+	// parse the version string and log it
 	version, err := parseVersionString(agentZip)
 	if err != nil {
 		logger.Log("message", "failed to parse version string", "error", err, "agentName", agentZip)
 		return "", errors.Wrap(err, "failed to parse version string")
 	}
+	logger.Log("message", "current agent version", "version", version)
 
-	// unzip the file only if this version does not already exist
-	dir := filepath.Join(dataDir, agentDir, version)
-	if _, err = os.Stat(dir); os.IsNotExist(err) {
-		// current version directory does not exist, so can unzip
-		_, err = unzip(logger, agentZip, dir)
-	} else {
-		logger.Log("message", "this version of the agent already exists", "version", version)
-		return "", errors.Wrap(err, "this version of the agent already exists")
-	}
-
-	// check that unzip was successful
+	// unzip the agent directory
+	dir := filepath.Join(dataDir, agentDir)
+	_, err = unzip(logger, agentZip, dir)
 	if err != nil {
-		logger.Log("message", "failed to unzip agent", "error", err)
+		logger.Log("message", "failed to unzip agent dir", "error", err)
 		return "", errors.Wrap(err, "failed to unzip agent")
 	}
 
-	// agent directory
+	// run install.sh and enable.sh
 	agentDirectory := filepath.Join(dir, agentName)
-
-	// run install.sh and enable.sh from the agent directory
-	logger.Log("event", "Running the installation/enabling commands")
-	runErr := runCmd(logger, "bash ./install.sh", agentDirectory, cfg)
-	if runErr != nil {
-		logger.Log("message", "error running install.sh", "error", runErr)
-	} else {
-		runErr = runCmd(logger, "bash ./enable.sh", agentDirectory, cfg)
-	}
+	_, runErr := installAndEnable(logger, agentDirectory)
 
 	// collect the logs if available
 	stdoutF, stderrF := logPaths(dir)
@@ -180,7 +197,7 @@ func checkAndSaveSeqNum(logger log.Logger, seqNum int, mrseqPath string) (should
 }
 
 // runCmd runs the command (extracted from cfg) in the given dir (assumed to exist).
-func runCmd(logger log.Logger, cmd string, dir string, cfg handlerSettings) (err error) {
+func runCmd(logger log.Logger, cmd string, dir string) (err error) {
 	logger.Log("event", "executing command", "output", dir)
 	var scenario string
 
