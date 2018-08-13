@@ -65,17 +65,7 @@ func enablePre(logger log.Logger, seqNum int) error {
 	if shouldExit, err := checkAndSaveSeqNum(logger, seqNum, mostRecentSequence); err != nil {
 		return errors.Wrap(err, "failed to process seqnum")
 	} else if shouldExit {
-		logger.Log("event", "exit", "message", "this guest configuration is already processed, will not run again")
-		// check agent health
-		logger.Log("event", "checking agent health")
-		agentDirectory := filepath.Join(dataDir, agentDir, agentName)
-		shouldExit, err := installAndEnable(logger, agentDirectory)
-		if err != nil {
-			logger.Log("message", "error running installation and enable scripts", "error", err)
-		}
-		if shouldExit == true {
-			os.Exit(0)
-		}
+		logger.Log("event", "exit", "message", "this sequence number is already processed, running agent health check")
 	}
 	return nil
 }
@@ -88,23 +78,14 @@ func installAndEnable(logger log.Logger, agentDirectory string) (bool, error) {
 		shouldExit = false
 	} else {
 		// run install.sh and enable.sh from the agent directory
-		logger.Log("event", "Running the installation/enabling commands")
-		runErr = runCmd(logger, "bash ./install.sh", agentDirectory)
-		if runErr != nil {
-			logger.Log("message", "error running install.sh", "error", runErr)
-		} else {
-			runErr = runCmd(logger, "bash ./enable.sh", agentDirectory)
-			if runErr != nil {
-				logger.Log("message", "error running enable.sh", "error", runErr)
-			}
-		}
+
 	}
 	return shouldExit, runErr
 }
 
 func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
 	// parse the extension handler settings (file not available prior to 'enable')
-	_, err := parseAndValidateSettings(logger, hEnv.HandlerEnvironment.ConfigFolder)
+	cfg, err := parseAndValidateSettings(logger, hEnv.HandlerEnvironment.ConfigFolder)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get configuration")
 	}
@@ -117,20 +98,40 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 	}
 	logger.Log("message", "current agent version", "version", version)
 
-	// unzip the agent directory
-	dir := filepath.Join(dataDir, agentDir)
-	_, err = unzip(logger, agentZip, dir)
-	if err != nil {
-		logger.Log("message", "failed to unzip agent dir", "error", err)
-		return "", errors.Wrap(err, "failed to unzip agent")
+	// check to see if agent directory exists
+	unzipDir := filepath.Join(dataDir, agentDir)
+	agentDirectory := filepath.Join(unzipDir, agentName)
+	var runErr error = nil
+	if _, err := os.Stat(agentDirectory); err == nil {
+		// directory exists, run enable.sh for agent health check
+		logger.Log("event", "agent health check")
+		runErr = runCmd(logger, "bash ./enable.sh", agentDirectory, cfg)
+		if runErr != nil {
+			logger.Log("message", "agent health check failed", "error", runErr)
+		}
+	} else {
+		// directory does not exist, unzip agent
+		_, err = unzip(logger, agentZip, unzipDir)
+		if err != nil {
+			logger.Log("message", "failed to unzip agent dir", "error", err)
+			return "", errors.Wrap(err, "failed to unzip agent")
+		}
+		// run install.sh and enable.sh
+		logger.Log("event", "installing agent")
+		runErr = runCmd(logger, "bash ./install.sh", agentDirectory, cfg)
+		if runErr != nil {
+			logger.Log("message", "agent installation failed", "error", runErr)
+		} else {
+			logger.Log("event", "enabling agent")
+			runErr = runCmd(logger, "bash ./enable.sh", agentDirectory, cfg)
+			if runErr != nil {
+				logger.Log("message", "enable agent failed", "error", runErr)
+			}
+		}
 	}
 
-	// run install.sh and enable.sh
-	agentDirectory := filepath.Join(dir, agentName)
-	_, runErr := installAndEnable(logger, agentDirectory)
-
 	// collect the logs if available
-	stdoutF, stderrF := logPaths(dir)
+	stdoutF, stderrF := logPaths(unzipDir)
 	stdoutTail, err := tailFile(stdoutF, maxTailLen)
 	if err != nil {
 		logger.Log("message", "error tailing stdout logs", "error", err)
@@ -197,7 +198,7 @@ func checkAndSaveSeqNum(logger log.Logger, seqNum int, mrseqPath string) (should
 }
 
 // runCmd runs the command (extracted from cfg) in the given dir (assumed to exist).
-func runCmd(logger log.Logger, cmd string, dir string) (err error) {
+func runCmd(logger log.Logger, cmd string, dir string, cfg handlerSettings) (err error) {
 	logger.Log("event", "executing command", "output", dir)
 	var scenario string
 
