@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/require"
-	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 )
 
 func Test_commandsExist(t *testing.T) {
@@ -163,7 +163,6 @@ func Test_install(t *testing.T) {
 	require.Nil(t, err)
 	require.Empty(t, message)
 }
-
 
 func Test_enablePre(t *testing.T) {
 	dir := filepath.Join(mostRecentSequence)
