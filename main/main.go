@@ -84,6 +84,7 @@ func main() {
 		logger.Log("event", "pre-check")
 		if err := cmd.pre(logger, seqNum); err != nil {
 			logger.Log("event", "pre-check failed", "error", err)
+			// TODO: telemetry
 			os.Exit(cmd.failExitCode)
 		}
 	}

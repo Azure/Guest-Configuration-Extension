@@ -1,6 +1,7 @@
 package main
 
 const (
+	// TODO: create set of error codes for each command
 	// Error codes for each command
 	installCode   = 100
 	enableCode    = 200

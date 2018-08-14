@@ -49,6 +49,7 @@ var (
 )
 
 func install(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
+	// TODO: remove mkdir
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return "", errors.Wrap(err, "failed to create data dir")
 	}
@@ -65,22 +66,10 @@ func enablePre(logger log.Logger, seqNum int) error {
 	if shouldExit, err := checkAndSaveSeqNum(logger, seqNum, mostRecentSequence); err != nil {
 		return errors.Wrap(err, "failed to process seqnum")
 	} else if shouldExit {
-		logger.Log("event", "exit", "message", "this sequence number is already processed, running agent health check")
+		logger.Log("event", "exit", "message", "this sequence number is already processed, will not run again")
+		os.Exit(0)
 	}
 	return nil
-}
-
-func installAndEnable(logger log.Logger, agentDirectory string) (bool, error) {
-	// check if agent directory exists
-	shouldExit := true
-	var runErr error = nil
-	if _, err := os.Stat(agentDirectory); os.IsNotExist(err) {
-		shouldExit = false
-	} else {
-		// run install.sh and enable.sh from the agent directory
-
-	}
-	return shouldExit, runErr
 }
 
 func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
@@ -104,29 +93,31 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 	var runErr error = nil
 	if _, err := os.Stat(agentDirectory); err == nil {
 		// directory exists, run enable.sh for agent health check
-		logger.Log("event", "agent health check")
+		logger.Log("event", "running agent health check")
 		runErr = runCmd(logger, "bash ./enable.sh", agentDirectory, cfg)
 		if runErr != nil {
 			logger.Log("message", "agent health check failed", "error", runErr)
+			os.Exit(enableCode)
 		}
+		//TODO: success error code
+		os.Exit(0)
+	}
+	// directory does not exist, unzip agent
+	_, err = unzip(logger, agentZip, unzipDir)
+	if err != nil {
+		logger.Log("message", "failed to unzip agent dir", "error", err)
+		return "", errors.Wrap(err, "failed to unzip agent")
+	}
+	// run install.sh and enable.sh
+	logger.Log("event", "installing agent")
+	runErr = runCmd(logger, "bash ./install.sh", agentDirectory, cfg)
+	if runErr != nil {
+		logger.Log("message", "agent installation failed", "error", runErr)
 	} else {
-		// directory does not exist, unzip agent
-		_, err = unzip(logger, agentZip, unzipDir)
-		if err != nil {
-			logger.Log("message", "failed to unzip agent dir", "error", err)
-			return "", errors.Wrap(err, "failed to unzip agent")
-		}
-		// run install.sh and enable.sh
-		logger.Log("event", "installing agent")
-		runErr = runCmd(logger, "bash ./install.sh", agentDirectory, cfg)
+		logger.Log("event", "enabling agent")
+		runErr = runCmd(logger, "bash ./enable.sh", agentDirectory, cfg)
 		if runErr != nil {
-			logger.Log("message", "agent installation failed", "error", runErr)
-		} else {
-			logger.Log("event", "enabling agent")
-			runErr = runCmd(logger, "bash ./enable.sh", agentDirectory, cfg)
-			if runErr != nil {
-				logger.Log("message", "enable agent failed", "error", runErr)
-			}
+			logger.Log("message", "enable agent failed", "error", runErr)
 		}
 	}
 
@@ -186,7 +177,7 @@ func checkAndSaveSeqNum(logger log.Logger, seqNum int, mrseqPath string) (should
 		return false, errors.Wrap(err, "failed to check sequence number")
 	}
 	if !smaller {
-		// store sequence number is equal or greater than the current sequence number
+		// store sequence number is greater than the current sequence number
 		return true, nil
 	}
 	if err := seqnum.Set(mrseqPath, seqNum); err != nil {
