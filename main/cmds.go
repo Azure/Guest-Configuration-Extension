@@ -74,13 +74,14 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 		return "", errors.Wrap(err, "failed to get configuration")
 	}
 
-	// parse the version string and log it
+	// parse the version string, log it, and send it through telemetry
 	version, err := parseVersionString(agentZip)
 	if err != nil {
 		logger.Log("message", "failed to parse version string", "error", err, "agentName", agentZip)
 		return "", errors.Wrap(err, "failed to parse version string")
 	}
 	logger.Log("message", "current agent version", "version", version)
+	telemetry("current agent version", version, true, 0)
 
 	// check to see if agent directory exists
 	unzipDir := filepath.Join(dataDir, agentDir)
@@ -126,7 +127,7 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 		logger.Log("message", "error tailing stderr logs", "error", err)
 	}
 
-	msg := fmt.Sprintf("\n[stdout]\n%s\n[stderr]\n%s", string(stdoutTail), string(stderrTail))
+	msg := fmt.Sprintf("[stdout] %s [stderr] %s", string(stdoutTail), string(stderrTail))
 
 	minStdout := min(len(stdoutTail), maxTelemetryTailLen)
 	minStderr := min(len(stderrTail), maxTelemetryTailLen)
