@@ -173,7 +173,13 @@ func Test_enablePre(t *testing.T) {
 	err := enablePre(nop, 0)
 	require.Nil(t, err)
 
+	err = enablePre(nop, 0)
+	require.Nil(t, err)
+
 	err = enablePre(nop, 1)
+	require.Nil(t, err)
+
+	err = enablePre(nop, 4)
 	require.Nil(t, err)
 }
 
