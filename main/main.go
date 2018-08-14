@@ -84,7 +84,7 @@ func main() {
 		logger.Log("event", "pre-check")
 		if err := cmd.pre(logger, seqNum); err != nil {
 			logger.Log("event", "pre-check failed", "error", err)
-			// TODO: telemetry
+			telemetry("pre-check for enable", "pre-check failed", false, 0)
 			os.Exit(cmd.failExitCode)
 		}
 	}
@@ -111,14 +111,14 @@ func parseCmd(args []string) cmd {
 			fmt.Println("Too many arguments")
 		}
 		printUsage(args)
-		os.Exit(invalidCode)
+		os.Exit(invalidCmdCode)
 	}
 	// ensure arguments passed are all lower case
 	cmd, ok := cmds[strings.ToLower(args[0])]
 	if !ok {
 		printUsage(args)
 		fmt.Printf("Incorrect command: %q\n", args[0])
-		os.Exit(invalidCode)
+		os.Exit(invalidCmdCode)
 	}
 	return cmd
 }

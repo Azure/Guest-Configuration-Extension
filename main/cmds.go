@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/Azure/custom-script-extension-linux/pkg/seqnum"
+	"github.com/Azure/Guest-Configuration-Extension/pkg/seqnum"
 	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
 )
@@ -49,12 +49,6 @@ var (
 )
 
 func install(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
-	// TODO: remove mkdir
-	if err := os.MkdirAll(dataDir, 0755); err != nil {
-		return "", errors.Wrap(err, "failed to create data dir")
-	}
-
-	logger.Log("event", "created data dir", "path", dataDir)
 	logger.Log("event", "installed")
 
 	return "", nil
@@ -66,8 +60,9 @@ func enablePre(logger log.Logger, seqNum int) error {
 	if shouldExit, err := checkAndSaveSeqNum(logger, seqNum, mostRecentSequence); err != nil {
 		return errors.Wrap(err, "failed to process seqnum")
 	} else if shouldExit {
-		logger.Log("event", "exit", "message", "this sequence number is already processed, will not run again")
-		os.Exit(0)
+		logger.Log("event", "exit", "message",
+			"this sequence number smaller than the currently processed sequence number, will not run again")
+		os.Exit(successCode)
 	}
 	return nil
 }
@@ -97,10 +92,9 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 		runErr = runCmd(logger, "bash ./enable.sh", agentDirectory, cfg)
 		if runErr != nil {
 			logger.Log("message", "agent health check failed", "error", runErr)
-			os.Exit(enableCode)
+			os.Exit(agentHealthCheckFailedCode)
 		}
-		//TODO: success error code
-		os.Exit(0)
+		os.Exit(successCode)
 	}
 	// directory does not exist, unzip agent
 	_, err = unzip(logger, agentZip, unzipDir)
@@ -191,14 +185,13 @@ func checkAndSaveSeqNum(logger log.Logger, seqNum int, mrseqPath string) (should
 // runCmd runs the command (extracted from cfg) in the given dir (assumed to exist).
 func runCmd(logger log.Logger, cmd string, dir string, cfg handlerSettings) (err error) {
 	logger.Log("event", "executing command", "output", dir)
-	var scenario string
 
 	begin := time.Now()
 	err = ExecCmdInDir(cmd, dir)
 	elapsed := time.Now().Sub(begin)
 	isSuccess := err == nil
 
-	telemetry("scenario", scenario, isSuccess, elapsed)
+	logger.Log("event", "command executed", "command", cmd, "isSuccess", isSuccess, "time elapsed", elapsed)
 
 	if err != nil {
 		logger.Log("event", "failed to execute command", "error", err, "output", dir)
