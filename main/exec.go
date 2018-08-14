@@ -31,6 +31,7 @@ func Exec(cmd, workdir string, stdout, stderr io.WriteCloser) (int, error) {
 	if ok {
 		if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 			code := status.ExitStatus()
+			// TODO Add telemetry event here
 			return code, fmt.Errorf("command terminated with exit status=%d", code)
 		}
 	}

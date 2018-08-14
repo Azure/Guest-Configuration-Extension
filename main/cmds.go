@@ -49,6 +49,7 @@ var (
 )
 
 func install(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
+	// TODO: remove mkdir
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return "", errors.Wrap(err, "failed to create data dir")
 	}
@@ -65,7 +66,8 @@ func enablePre(logger log.Logger, seqNum int) error {
 	if shouldExit, err := checkAndSaveSeqNum(logger, seqNum, mostRecentSequence); err != nil {
 		return errors.Wrap(err, "failed to process seqnum")
 	} else if shouldExit {
-		logger.Log("event", "exit", "message", "this guest configuration is already processed, will not run again")
+		logger.Log("event", "exit", "message", "this sequence number is already processed, will not run again")
+		os.Exit(0)
 	}
 	return nil
 }
@@ -77,43 +79,50 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 		return "", errors.Wrap(err, "failed to get configuration")
 	}
 
-	// parse the version string
+	// parse the version string and log it
 	version, err := parseVersionString(agentZip)
 	if err != nil {
 		logger.Log("message", "failed to parse version string", "error", err, "agentName", agentZip)
 		return "", errors.Wrap(err, "failed to parse version string")
 	}
+	logger.Log("message", "current agent version", "version", version)
 
-	// unzip the file only if this version does not already exist
-	dir := filepath.Join(dataDir, agentDir, version)
-	if _, err = os.Stat(dir); os.IsNotExist(err) {
-		// current version directory does not exist, so can unzip
-		_, err = unzip(logger, agentZip, dir)
-	} else {
-		logger.Log("message", "this version of the agent already exists", "version", version)
-		return "", errors.Wrap(err, "this version of the agent already exists")
+	// check to see if agent directory exists
+	unzipDir := filepath.Join(dataDir, agentDir)
+	agentDirectory := filepath.Join(unzipDir, agentName)
+	var runErr error = nil
+	if _, err := os.Stat(agentDirectory); err == nil {
+		// directory exists, run enable.sh for agent health check
+		logger.Log("event", "running agent health check")
+		runErr = runCmd(logger, "bash ./enable.sh", agentDirectory, cfg)
+		if runErr != nil {
+			logger.Log("message", "agent health check failed", "error", runErr)
+			os.Exit(enableCode)
+		}
+		//TODO: success error code
+		os.Exit(0)
 	}
-
-	// check that unzip was successful
+	// directory does not exist, unzip agent
+	_, err = unzip(logger, agentZip, unzipDir)
 	if err != nil {
-		logger.Log("message", "failed to unzip agent", "error", err)
+		logger.Log("message", "failed to unzip agent dir", "error", err)
 		return "", errors.Wrap(err, "failed to unzip agent")
 	}
-
-	// agent directory
-	agentDirectory := filepath.Join(dir, agentName)
-
-	// run install.sh and enable.sh from the agent directory
-	logger.Log("event", "Running the installation/enabling commands")
-	runErr := runCmd(logger, "bash ./install.sh", agentDirectory, cfg)
+	// run install.sh and enable.sh
+	logger.Log("event", "installing agent")
+	runErr = runCmd(logger, "bash ./install.sh", agentDirectory, cfg)
 	if runErr != nil {
-		logger.Log("message", "error running install.sh", "error", runErr)
+		logger.Log("message", "agent installation failed", "error", runErr)
 	} else {
+		logger.Log("event", "enabling agent")
 		runErr = runCmd(logger, "bash ./enable.sh", agentDirectory, cfg)
+		if runErr != nil {
+			logger.Log("message", "enable agent failed", "error", runErr)
+		}
 	}
 
 	// collect the logs if available
-	stdoutF, stderrF := logPaths(dir)
+	stdoutF, stderrF := logPaths(unzipDir)
 	stdoutTail, err := tailFile(stdoutF, maxTailLen)
 	if err != nil {
 		logger.Log("message", "error tailing stdout logs", "error", err)
@@ -168,7 +177,7 @@ func checkAndSaveSeqNum(logger log.Logger, seqNum int, mrseqPath string) (should
 		return false, errors.Wrap(err, "failed to check sequence number")
 	}
 	if !smaller {
-		// store sequence number is equal or greater than the current sequence number
+		// store sequence number is greater than the current sequence number
 		return true, nil
 	}
 	if err := seqnum.Set(mrseqPath, seqNum); err != nil {
