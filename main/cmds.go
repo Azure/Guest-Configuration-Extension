@@ -109,10 +109,12 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 	if runErr != nil {
 		logger.Log("message", "agent installation failed", "error", runErr)
 	} else {
-		logger.Log("event", "enabling agent")
+		logger.Log("message", "agent installation succeeded", "event", "enabling agent")
 		runErr = runCmd(logger, "bash ./enable.sh", agentDirectory, cfg)
 		if runErr != nil {
 			logger.Log("message", "enable agent failed", "error", runErr)
+		} else {
+			logger.Log("message", "enable agent succeeded")
 		}
 	}
 
@@ -272,6 +274,8 @@ func disable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int)
 	runErr := runCmd(logger, "bash ./disable.sh", agentDirectory, cfg)
 	if runErr != nil {
 		logger.Log("message", "agent disable failed", "error", runErr)
+	} else {
+		logger.Log("message", "agent disable succeeded")
 	}
 
 	// collect the logs if available
