@@ -117,26 +117,7 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 	}
 
 	// collect the logs if available
-	stdoutF, stderrF := logPaths(unzipDir)
-	stdoutTail, err := tailFile(stdoutF, maxTailLen)
-	if err != nil {
-		logger.Log("message", "error tailing stdout logs", "error", err)
-	}
-	stderrTail, err := tailFile(stderrF, maxTailLen)
-	if err != nil {
-		logger.Log("message", "error tailing stderr logs", "error", err)
-	}
-
-	msg := fmt.Sprintf("[stdout] %s [stderr] %s", string(stdoutTail), string(stderrTail))
-
-	minStdout := min(len(stdoutTail), maxTelemetryTailLen)
-	minStderr := min(len(stderrTail), maxTelemetryTailLen)
-	msgTelemetry := fmt.Sprintf("\n[stdout]\n%s\n[stderr]\n%s",
-		string(stdoutTail[len(stdoutTail)-minStdout:]),
-		string(stderrTail[len(stderrTail)-minStderr:]))
-
-	isSuccess := runErr == nil
-	telemetry("Output", msgTelemetry, isSuccess, 0)
+	msg, isSuccess := loggingAndTelemtry(logger, unzipDir, runErr)
 
 	if isSuccess {
 		logger.Log("event", "enabled")
@@ -248,12 +229,60 @@ func unzip(logger log.Logger, source string, dest string) ([]string, error) {
 	return filenames, nil
 }
 
+func loggingAndTelemtry(logger log.Logger, unzipDir string, runErr error) (string, bool) {
+	stdoutF, stderrF := logPaths(unzipDir)
+	stdoutTail, err := tailFile(stdoutF, maxTailLen)
+	if err != nil {
+		logger.Log("message", "error tailing stdout logs", "error", err)
+	}
+	stderrTail, err := tailFile(stderrF, maxTailLen)
+	if err != nil {
+		logger.Log("message", "error tailing stderr logs", "error", err)
+	}
+
+	msg := fmt.Sprintf("[stdout] %s [stderr] %s", string(stdoutTail), string(stderrTail))
+
+	minStdout := min(len(stdoutTail), maxTelemetryTailLen)
+	minStderr := min(len(stderrTail), maxTelemetryTailLen)
+	msgTelemetry := fmt.Sprintf("\n[stdout]\n%s\n[stderr]\n%s",
+		string(stdoutTail[len(stdoutTail)-minStdout:]),
+		string(stderrTail[len(stderrTail)-minStderr:]))
+
+	isSuccess := runErr == nil
+	telemetry("Output", msgTelemetry, isSuccess, 0)
+
+	return msg, isSuccess
+}
+
 func update(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
 	return "", nil
 }
 
 func disable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
-	return "", nil
+	// parse the extension handler settings
+	cfg, err := parseAndValidateSettings(logger, hEnv.HandlerEnvironment.ConfigFolder)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get configuration")
+	}
+
+	// run disable.sh to disable the agent
+	logger.Log("event", "disabling agent")
+	unzipDir := filepath.Join(dataDir, agentDir)
+	agentDirectory := filepath.Join(unzipDir, agentName)
+	runErr := runCmd(logger, "bash ./disable.sh", agentDirectory, cfg)
+	if runErr != nil {
+		logger.Log("message", "agent disable failed", "error", runErr)
+	}
+
+	// collect the logs if available
+	msg, isSuccess := loggingAndTelemtry(logger, unzipDir, runErr)
+
+	if isSuccess {
+		logger.Log("event", "disabled")
+	} else {
+		logger.Log("event", "disable failed")
+	}
+	return msg, runErr
 }
 
 func uninstall(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
