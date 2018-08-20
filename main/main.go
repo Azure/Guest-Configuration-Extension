@@ -90,14 +90,22 @@ func main() {
 	}
 
 	// execute the command
+	logger.Log("message", "reporting #1 handler status", "error")
 	reportStatus(logger, hEnv, seqNum, status.StatusTransitioning, cmd, "")
 	msg, err := cmd.f(logger, hEnv, seqNum)
+	logger.Log("message", "msg", "error")
 	if err != nil {
 		logger.Log("event", "failed to handle", "error", err)
 		reportStatus(logger, hEnv, seqNum, status.StatusError, cmd, err.Error()+msg)
 		os.Exit(cmd.failExitCode)
+	} else {
+		logger.Log("message", "reporting #2 handler status", "error")
+		reportStatus(logger, hEnv, seqNum, status.StatusSuccess, cmd, msg)
+		os.Exit(success)
 	}
+	logger.Log("message", "reporting #2 handler status", "error")
 	reportStatus(logger, hEnv, seqNum, status.StatusSuccess, cmd, msg)
+
 	logger.Log("event", "end")
 }
 

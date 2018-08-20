@@ -13,6 +13,7 @@ import (
 //
 // If an error occurs reporting the status, it will be logged and returned.
 func reportStatus(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int, t status.Type, c cmd, msg string) error {
+	logger.Log("message", "reporting handler status", "error")
 	if !c.shouldReportStatus {
 		logger.Log("status", "not reported for operation (by design)")
 		return nil
@@ -22,6 +23,7 @@ func reportStatus(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum
 		logger.Log("event", "failed to save handler status", "error", err)
 		return errors.Wrap(err, "failed to save handler status")
 	}
+	logger.Log("message", "reported handler status", "error")
 	return nil
 }
 

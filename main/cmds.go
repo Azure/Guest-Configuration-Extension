@@ -33,6 +33,7 @@ const (
 	fullName                = "Microsoft.Azure.Extensions.GuestConfigurationForLinux"
 	maxTailLen              = 4 * 1024 // length of max stdout/stderr to be transmitted in .status file
 	maxTelemetryTailLen int = 1800
+	success int = 0
 )
 
 var (
@@ -64,6 +65,7 @@ func enablePre(logger log.Logger, seqNum int) error {
 			"this sequence number smaller than the currently processed sequence number, will not run again")
 		os.Exit(successCode)
 	}
+	logger.Log("message", "enablePre done")
 	return nil
 }
 
