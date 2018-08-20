@@ -56,35 +56,36 @@ func main() {
 	logger = log.With(logger, "operation", cmd.name)
 
 	// log flag settings and command name
-	logger.Log("message", "flags settings", "verbose", strconv.FormatBool(flags.verbose),
+	logger.Log(logMessage, "flags settings", "verbose", strconv.FormatBool(flags.verbose),
 		"debug", strconv.FormatBool(flags.debug))
 	logger.Log("command name", cmd.name)
 
 	// parse extension environment
 	hEnv, err := vmextension.GetHandlerEnv()
 	if err != nil {
-		logger.Log("message", "failed to parse handlerenv", "error", err)
+		logger.Log(logMessage, "failed to parse handlerenv", logError, err)
 		os.Exit(cmd.failExitCode)
 	}
 
 	// get sequence number
 	seqNum, err := vmextension.FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
 	if err != nil {
-		logger.Log("messsage", "failed to find sequence number", "error", err)
+		logger.Log(logMessage, "failed to find sequence number", logError, err)
 		// only throw a fatal error if the command is not install
 		if cmd.name != "install" {
 			os.Exit(cmd.failExitCode)
 		}
 	}
-	logger = log.With(logger, "seq", seqNum)
+	logger = log.With(logger, "seqNum", seqNum)
 
 	// check sub-command preconditions, if any, before executing
-	logger.Log("event", "start")
+	logger.Log(logEvent, "start")
 	if cmd.pre != nil {
-		logger.Log("event", "pre-check")
+		logger.Log(logEvent, "pre-check")
 		if err := cmd.pre(logger, seqNum); err != nil {
-			logger.Log("event", "pre-check failed", "error", err)
-			telemetry("pre-check for enable", "pre-check failed", false, 0)
+			logger.Log(logEvent, "pre-check failed", logError, err)
+			// TODO: change operation and make enum
+			telemetry(telemetryScenario, "enable pre-check failed", false, 0)
 			os.Exit(cmd.failExitCode)
 		}
 	}
@@ -93,12 +94,13 @@ func main() {
 	reportStatus(logger, hEnv, seqNum, status.StatusTransitioning, cmd, "")
 	msg, err := cmd.f(logger, hEnv, seqNum)
 	if err != nil {
-		logger.Log("event", "failed to handle", "error", err)
+		logger.Log(logEvent, "failed to handle", logError, err)
 		reportStatus(logger, hEnv, seqNum, status.StatusError, cmd, err.Error()+msg)
 		os.Exit(cmd.failExitCode)
 	}
 	reportStatus(logger, hEnv, seqNum, status.StatusSuccess, cmd, msg)
-	logger.Log("event", "end")
+	logger.Log(logEvent, "end")
+	os.Exit(successCode)
 }
 
 // parseCmd looks at the input array and parses the subcommand. If it is invalid,

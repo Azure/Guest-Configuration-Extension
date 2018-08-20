@@ -49,7 +49,7 @@ var (
 )
 
 func install(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
-	logger.Log("event", "installed")
+	logger.Log(logEvent, "installed")
 
 	return "", nil
 }
@@ -60,7 +60,7 @@ func enablePre(logger log.Logger, seqNum int) error {
 	if shouldExit, err := checkAndSaveSeqNum(logger, seqNum, mostRecentSequence); err != nil {
 		return errors.Wrap(err, "failed to process seqnum")
 	} else if shouldExit {
-		logger.Log("event", "exit", "message",
+		logger.Log(logEvent, "exit", logMessage,
 			"this sequence number smaller than the currently processed sequence number, will not run again")
 		os.Exit(successCode)
 	}
@@ -77,56 +77,136 @@ func enable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) 
 	// parse the version string, log it, and send it through telemetry
 	version, err := parseVersionString(agentZip)
 	if err != nil {
-		logger.Log("message", "failed to parse version string", "error", err, "agentName", agentZip)
+		logger.Log(logMessage, "failed to parse version string", logError, err, logAgentName, agentZip)
 		return "", errors.Wrap(err, "failed to parse version string")
 	}
-	logger.Log("message", "current agent version", "version", version)
-	telemetry("current agent version", version, true, 0)
+	logger.Log(logMessage, "current agent version", logVersion, version)
+	// TODO Scenarios and Message should be variables. Better Enums.
+	telemetry(telemetryScenario, "Current agent version: "+version, true, 0)
 
 	// check to see if agent directory exists
-	unzipDir := filepath.Join(dataDir, agentDir)
-	agentDirectory := filepath.Join(unzipDir, agentName)
+	unzipDir, agentDirectory := unzipAndAgentDirectories()
 	var runErr error = nil
 	if _, err := os.Stat(agentDirectory); err == nil {
 		// directory exists, run enable.sh for agent health check
-		logger.Log("event", "running agent health check")
+		logger.Log(logEvent, "running agent health check")
+
 		runErr = runCmd(logger, "bash ./enable.sh", agentDirectory, cfg)
 		if runErr != nil {
-			logger.Log("message", "agent health check failed", "error", runErr)
+			logger.Log(logMessage, "agent health check failed", logError, runErr)
 			os.Exit(agentHealthCheckFailedCode)
 		}
 		os.Exit(successCode)
 	}
+
 	// directory does not exist, unzip agent
 	_, err = unzip(logger, agentZip, unzipDir)
 	if err != nil {
-		logger.Log("message", "failed to unzip agent dir", "error", err)
+		logger.Log(logMessage, "failed to unzip agent dir", logError, err)
 		return "", errors.Wrap(err, "failed to unzip agent")
 	}
 	// run install.sh and enable.sh
-	logger.Log("event", "installing agent")
+	logger.Log(logEvent, "installing agent")
 	runErr = runCmd(logger, "bash ./install.sh", agentDirectory, cfg)
 	if runErr != nil {
-		logger.Log("message", "agent installation failed", "error", runErr)
+		logger.Log(logMessage, "agent installation failed", logError, runErr)
 	} else {
-		logger.Log("message", "agent installation succeeded", "event", "enabling agent")
+		logger.Log(logMessage, "agent installation succeeded", logEvent, "enabling agent")
 		runErr = runCmd(logger, "bash ./enable.sh", agentDirectory, cfg)
 		if runErr != nil {
-			logger.Log("message", "enable agent failed", "error", runErr)
+			logger.Log(logMessage, "enable agent failed", logError, runErr)
 		} else {
-			logger.Log("message", "enable agent succeeded")
+			logger.Log(logMessage, "enable agent succeeded")
 		}
 	}
 
-	// collect the logs if available
-	msg, isSuccess := loggingAndTelemtry(logger, unzipDir, runErr)
+	// collect the logs if available and send telemetry updates
+	getStdPipesAndTelemetry(logger, unzipDir, runErr)
 
-	if isSuccess {
-		logger.Log("event", "enabled")
-	} else {
-		logger.Log("event", "enable failed")
-	}
+	// TODO: write message for portal
+	msg := ""
+
 	return msg, runErr
+}
+
+func update(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
+	// parse the extension handler settings
+	cfg, err := parseAndValidateSettings(logger, hEnv.HandlerEnvironment.ConfigFolder)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get configuration")
+	}
+
+	// get old extension path
+
+	// run update.sh to update the agent
+	logger.Log(logEvent, "updating agent")
+	unzipDir, agentDirectory := unzipAndAgentDirectories()
+	runErr := runCmd(logger, "bash ./update.sh", agentDirectory, cfg)
+	if runErr != nil {
+		// TODO: User doesn't need to know this?
+		logger.Log(logMessage, "agent update failed", logError, runErr)
+	} else {
+		logger.Log(logMessage, "agent update succeeded")
+	}
+
+	// collect the logs if available and send telemetry updates
+	getStdPipesAndTelemetry(logger, unzipDir, runErr)
+	// TODO sendTelemetryMessage()
+
+	return "", runErr
+}
+
+func disable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
+	// parse the extension handler settings
+	cfg, err := parseAndValidateSettings(logger, hEnv.HandlerEnvironment.ConfigFolder)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get configuration")
+	}
+
+	// run disable.sh to disable the agent
+	logger.Log(logEvent, "disabling agent")
+	unzipDir, agentDirectory := unzipAndAgentDirectories()
+	runErr := runCmd(logger, "bash ./disable.sh", agentDirectory, cfg)
+	if runErr != nil {
+		logger.Log(logMessage, "agent disable failed", logError, runErr)
+	} else {
+		logger.Log(logMessage, "agent disable succeeded")
+	}
+
+	// collect the logs if available and send telemetry updates
+	getStdPipesAndTelemetry(logger, unzipDir, runErr)
+
+	// TODO: change msg to "disable succeeded" or something
+	msg := ""
+
+	return msg, nil
+}
+
+func uninstall(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
+	// parse the extension handler settings
+	cfg, err := parseAndValidateSettings(logger, hEnv.HandlerEnvironment.ConfigFolder)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get configuration")
+	}
+
+	// run uninstall.sh to uninstall the agent
+	logger.Log(logEvent, "uninstalling agent")
+	unzipDir, agentDirectory := unzipAndAgentDirectories()
+	runErr := runCmd(logger, "bash ./uninstall.sh", agentDirectory, cfg)
+	if runErr != nil {
+		// TODO: user doesn't need to know (same for disable)
+		logger.Log(logMessage, "agent uninstall failed", logError, runErr)
+	} else {
+		logger.Log(logMessage, "agent uninstall succeeded")
+	}
+
+	// collect the logs if available and send telemetry updates
+	getStdPipesAndTelemetry(logger, unzipDir, runErr)
+
+	// TODO: fix msg
+	msg := ""
+
+	return msg, nil
 }
 
 func min(a int, b int) int {
@@ -134,6 +214,13 @@ func min(a int, b int) int {
 		return a
 	}
 	return b
+}
+
+// returns the filepaths for the unzip and agent directories
+func unzipAndAgentDirectories() (unzipDirectory string, agentDirectory string) {
+	unzipDirectory = filepath.Join(dataDir, agentDir)
+	agentDirectory = filepath.Join(unzipDirectory, agentName)
+	return unzipDirectory, agentDirectory
 }
 
 func parseVersionString(agentName string) (version string, err error) {
@@ -149,7 +236,7 @@ func parseVersionString(agentName string) (version string, err error) {
 // according to the specified seqNumFile and if so, returns true,
 // otherwise saves the given seqNum into seqNumFile returns false.
 func checkAndSaveSeqNum(logger log.Logger, seqNum int, mrseqPath string) (shouldExit bool, _ error) {
-	logger.Log("event", "comparing seqnum", "path", mrseqPath)
+	logger.Log(logEvent, "comparing seqnum", logPath, mrseqPath)
 	smaller, err := seqnum.IsSmallerThan(mrseqPath, seqNum)
 	if err != nil {
 		return false, errors.Wrap(err, "failed to check sequence number")
@@ -161,34 +248,34 @@ func checkAndSaveSeqNum(logger log.Logger, seqNum int, mrseqPath string) (should
 	if err := seqnum.Set(mrseqPath, seqNum); err != nil {
 		return false, errors.Wrap(err, "failed to save the sequence number")
 	}
-	logger.Log("event", "seqnum saved", "path", mrseqPath)
+	logger.Log(logMessage, "seqnum saved", logPath, mrseqPath)
 
 	return false, nil
 }
 
 // runCmd runs the command (extracted from cfg) in the given dir (assumed to exist).
 func runCmd(logger log.Logger, cmd string, dir string, cfg handlerSettings) (err error) {
-	logger.Log("event", "executing command", "output", dir)
+	logger.Log(logEvent, "executing command", logOutput, dir)
 
 	begin := time.Now()
 	err = ExecCmdInDir(cmd, dir)
 	elapsed := time.Now().Sub(begin)
 	isSuccess := err == nil
 
-	logger.Log("event", "command executed", "command", cmd, "isSuccess", isSuccess, "time elapsed", elapsed)
+	logger.Log(logMessage, "command executed", "command", cmd, "isSuccess", isSuccess, "time elapsed", elapsed)
 
 	if err != nil {
-		logger.Log("event", "failed to execute command", "error", err, "output", dir)
+		logger.Log(logMessage, "failed to execute command", logError, err, logOutput, dir)
 		return errors.Wrap(err, "failed to execute command")
 	}
-	logger.Log("event", "executed command", "output", dir)
+	logger.Log(logEvent, "executed command", logOutput, dir)
 	return nil
 }
 
 // decompresses a zip archive, moving all files and folders within the zip file
 // to an output directory
 func unzip(logger log.Logger, source string, dest string) ([]string, error) {
-	logger.Log("event", "begin unzipping agent")
+	logger.Log(logEvent, "begin unzipping agent")
 	var filenames []string
 	r, err := zip.OpenReader(source)
 	if err != nil {
@@ -227,22 +314,20 @@ func unzip(logger log.Logger, source string, dest string) ([]string, error) {
 			}
 		}
 	}
-	logger.Log("event", "unzipping successful")
+	logger.Log(logEvent, "unzipping successful")
 	return filenames, nil
 }
 
-func loggingAndTelemtry(logger log.Logger, unzipDir string, runErr error) (string, bool) {
-	stdoutF, stderrF := logPaths(unzipDir)
+func getStdPipesAndTelemetry(logger log.Logger, logDir string, runErr error) {
+	stdoutF, stderrF := logPaths(logDir)
 	stdoutTail, err := tailFile(stdoutF, maxTailLen)
 	if err != nil {
-		logger.Log("message", "error tailing stdout logs", "error", err)
+		logger.Log(logMessage, "error tailing stdout logs", logError, err)
 	}
 	stderrTail, err := tailFile(stderrF, maxTailLen)
 	if err != nil {
-		logger.Log("message", "error tailing stderr logs", "error", err)
+		logger.Log(logMessage, "error tailing stderr logs", logError, err)
 	}
-
-	msg := fmt.Sprintf("[stdout] %s [stderr] %s", string(stdoutTail), string(stderrTail))
 
 	minStdout := min(len(stdoutTail), maxTelemetryTailLen)
 	minStderr := min(len(stderrTail), maxTelemetryTailLen)
@@ -251,44 +336,5 @@ func loggingAndTelemtry(logger log.Logger, unzipDir string, runErr error) (strin
 		string(stderrTail[len(stderrTail)-minStderr:]))
 
 	isSuccess := runErr == nil
-	telemetry("Output", msgTelemetry, isSuccess, 0)
-
-	return msg, isSuccess
-}
-
-func update(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
-	return "", nil
-}
-
-func disable(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
-	// parse the extension handler settings
-	cfg, err := parseAndValidateSettings(logger, hEnv.HandlerEnvironment.ConfigFolder)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get configuration")
-	}
-
-	// run disable.sh to disable the agent
-	logger.Log("event", "disabling agent")
-	unzipDir := filepath.Join(dataDir, agentDir)
-	agentDirectory := filepath.Join(unzipDir, agentName)
-	runErr := runCmd(logger, "bash ./disable.sh", agentDirectory, cfg)
-	if runErr != nil {
-		logger.Log("message", "agent disable failed", "error", runErr)
-	} else {
-		logger.Log("message", "agent disable succeeded")
-	}
-
-	// collect the logs if available
-	msg, isSuccess := loggingAndTelemtry(logger, unzipDir, runErr)
-
-	if isSuccess {
-		logger.Log("event", "disabled")
-	} else {
-		logger.Log("event", "disable failed")
-	}
-	return msg, runErr
-}
-
-func uninstall(logger log.Logger, hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
-	return "", nil
+	telemetry("output", msgTelemetry, isSuccess, 0)
 }
