@@ -53,6 +53,10 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
+# Redirect logs of the handler process
+mkdir -p "$LOG_DIR"
+exec &> >(tee -ia "$LOG_DIR/$LOG_FILE")
+
 # Start handling the process in the background
 bin="$(readlink -f "$SCRIPT_DIR/$HANDLER_BIN")"
 cmd="$1"
