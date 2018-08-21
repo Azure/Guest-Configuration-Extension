@@ -9,7 +9,6 @@ import (
 	"github.com/Azure/azure-docker-extension/pkg/vmextension/status"
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
-	"github.com/go-kit/kit/log"
 	"strconv"
 )
 
@@ -46,60 +45,62 @@ var (
 )
 
 func main() {
-	logger := log.With(log.With(log.NewSyncLogger(log.NewLogfmtLogger(
-		os.Stdout)), "time", log.DefaultTimestamp), "version", VersionString())
+	lg := newLogger()
+
+	//logger := log.With(log.With(log.NewSyncLogger(log.NewLogfmtLogger(
+	//	os.Stdout)), "time", log.DefaultTimestamp), "version", VersionString())
 
 	// parse the command line arguments
 	flag.Parse()
 	flags := flags{*verbose, *debug}
 	cmd := parseCmd(flag.Args())
-	logger = log.With(logger, "operation", cmd.name)
+	lg.with("operation", cmd.name)
 
 	// log flag settings and command name
-	logger.Log(logMessage, "flags settings", "verbose", strconv.FormatBool(flags.verbose),
-		"debug", strconv.FormatBool(flags.debug))
-	logger.Log("command name", cmd.name)
+	lg.customLogMultiple(map[string]string{logMessage: "flags settings", "verbose": strconv.FormatBool(flags.verbose),
+		"debug": strconv.FormatBool(flags.debug)})
+	lg.customLogSingle("command name", cmd.name)
 
 	// parse extension environment
 	hEnv, err := vmextension.GetHandlerEnv()
 	if err != nil {
-		logger.Log(logMessage, "failed to parse handlerenv", logError, err)
+		lg.messageAndError("failed to parse handlerEnv", err)
 		os.Exit(cmd.failExitCode)
 	}
 
 	// get sequence number
 	seqNum, err := vmextension.FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
 	if err != nil {
-		logger.Log(logMessage, "failed to find sequence number", logError, err)
+		lg.messageAndError("failed to find sequence number", err)
 		// only throw a fatal error if the command is not install
 		if cmd.name != "install" {
 			os.Exit(cmd.failExitCode)
 		}
 	}
-	logger = log.With(logger, "seqNum", seqNum)
+	lg.with("seqNum", strconv.Itoa(seqNum))
 
 	// check sub-command preconditions, if any, before executing
-	logger.Log(logEvent, "start")
+	lg.event("start")
 	if cmd.pre != nil {
-		logger.Log(logEvent, "pre-check")
-		if err := cmd.pre(logger, seqNum); err != nil {
-			logger.Log(logEvent, "pre-check failed", logError, err)
-			// TODO: change operation and make enum
+		lg.event("pre-check")
+		if err := cmd.pre(lg, seqNum); err != nil {
+			lg.messageAndError("pre-check failed", err)
 			telemetry(telemetryScenario, "enable pre-check failed", false, 0)
 			os.Exit(cmd.failExitCode)
 		}
 	}
 
 	// execute the command
-	reportStatus(logger, hEnv, seqNum, status.StatusTransitioning, cmd, "")
-	msg, err := cmd.f(logger, hEnv, seqNum)
+	lg.event("reporting status")
+	reportStatus(lg.getLogger(), hEnv, seqNum, status.StatusTransitioning, cmd, "")
+	msg, err := cmd.f(lg, hEnv, seqNum)
 	if err != nil {
-		logger.Log(logEvent, "failed to handle", logError, err)
-		reportStatus(logger, hEnv, seqNum, status.StatusError, cmd, err.Error()+msg)
+		lg.messageAndError("command failed", err)
+		reportStatus(lg.getLogger(), hEnv, seqNum, status.StatusError, cmd, err.Error()+msg)
 		os.Exit(cmd.failExitCode)
 	}
-	reportStatus(logger, hEnv, seqNum, status.StatusSuccess, cmd, msg)
-	logger.Log(logEvent, "end")
+	reportStatus(lg.getLogger(), hEnv, seqNum, status.StatusSuccess, cmd, msg)
+	lg.event("end")
 	os.Exit(successCode)
 }
 

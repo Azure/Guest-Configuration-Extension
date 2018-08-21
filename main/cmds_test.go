@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
-	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,7 +37,7 @@ func Test_commands_shouldReportStatus(t *testing.T) {
 
 func Test_checkAndSaveSeqNum_fail(t *testing.T) {
 	// pass in invalid seqnum format
-	_, err := checkAndSaveSeqNum(log.NewNopLogger(), 0, "/non/existing/dir")
+	_, err := checkAndSaveSeqNum(newLogger(), 0, "/non/existing/dir")
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), `failed to save the sequence number`)
 }
@@ -49,7 +48,7 @@ func Test_checkAndSaveSeqNum_success(t *testing.T) {
 	fp := filepath.Join(dir, "seqnum")
 	defer os.RemoveAll(dir)
 
-	nop := log.NewNopLogger()
+	nop := newLogger()
 
 	// no sequence number, 0 comes in.
 	shouldExit, err := checkAndSaveSeqNum(nop, 0, fp)
@@ -97,7 +96,7 @@ func Test_runCmd_fail(t *testing.T) {
 	require.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	require.NotNil(t, runCmd(log.NewNopLogger(), "wrongCmd", dir, handlerSettings{}))
+	require.NotNil(t, runCmd(newLogger(), "wrongCmd", dir, handlerSettings{}))
 }
 
 func Test_runCmd_success(t *testing.T) {
@@ -105,7 +104,7 @@ func Test_runCmd_success(t *testing.T) {
 	require.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	require.Nil(t, runCmd(log.NewNopLogger(), "date", dir, handlerSettings{
+	require.Nil(t, runCmd(newLogger(), "date", dir, handlerSettings{
 		publicSettings: publicSettings{CommandToExecute: "date"},
 	}), "command should run successfully")
 
@@ -115,7 +114,7 @@ func Test_runCmd_success(t *testing.T) {
 	_, err = os.Stat(filepath.Join(dir, "stderr"))
 	require.Nil(t, err, "stderr should exist")
 
-	require.Nil(t, runCmd(log.NewNopLogger(), "", dir, handlerSettings{}))
+	require.Nil(t, runCmd(newLogger(), "", dir, handlerSettings{}))
 
 	// check stdout stderr files
 	_, err = os.Stat(filepath.Join(dir, "stdout"))
@@ -126,7 +125,7 @@ func Test_runCmd_success(t *testing.T) {
 
 func Test_runCmd_withTestFile(t *testing.T) {
 	dir := filepath.Join(dataDir, "testing")
-	_, err := unzip(log.NewNopLogger(), "../testing/testing.zip", dataDir)
+	_, err := unzip(newLogger(), "../testing/testing.zip", dataDir)
 
 	// print files in directory
 	_, err = ioutil.ReadDir(dir)
@@ -134,29 +133,29 @@ func Test_runCmd_withTestFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = runCmd(log.NewNopLogger(), "bash ./testing.sh", dir, handlerSettings{})
+	err = runCmd(newLogger(), "bash ./testing.sh", dir, handlerSettings{})
 
 	require.Nil(t, err)
 }
 
 func Test_unzip_fail(t *testing.T) {
-	_, err := unzip(log.NewNopLogger(), "", "agent")
+	_, err := unzip(newLogger(), "", "agent")
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), `failed to open zip`)
 
-	_, err = unzip(log.NewNopLogger(), "hello.zip", "agent")
+	_, err = unzip(newLogger(), "hello.zip", "agent")
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), `failed to open zip`)
 }
 
 func Test_unzip_pass(t *testing.T) {
 	dir := filepath.Join(dataDir, agentDir)
-	filenames, err := unzip(log.NewNopLogger(), "../"+agentZip, dir)
+	filenames, err := unzip(newLogger(), "../"+agentZip, dir)
 	require.Nil(t, err)
 	require.NotEmpty(t, filenames)
 
 	dir = filepath.Join(dataDir, agentDir)
-	filenames, err = unzip(log.NewNopLogger(), "../"+agentZip, dir)
+	filenames, err = unzip(newLogger(), "../"+agentZip, dir)
 	require.Nil(t, err)
 	require.NotEmpty(t, filenames)
 
@@ -164,7 +163,7 @@ func Test_unzip_pass(t *testing.T) {
 }
 
 func Test_install(t *testing.T) {
-	message, err := install(log.NewNopLogger(), vmextension.HandlerEnvironment{}, 0)
+	message, err := install(newLogger(), vmextension.HandlerEnvironment{}, 0)
 	require.Nil(t, err)
 	require.Empty(t, message)
 }
@@ -172,7 +171,7 @@ func Test_install(t *testing.T) {
 func Test_enablePre(t *testing.T) {
 	dir := filepath.Join(mostRecentSequence)
 	os.RemoveAll(dir)
-	nop := log.NewNopLogger()
+	nop := newLogger()
 	defer os.RemoveAll(dir)
 
 	err := enablePre(nop, 0)
