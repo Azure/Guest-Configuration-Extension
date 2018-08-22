@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/Azure/custom-script-extension-linux/pkg/seqnum"
+	"github.com/Azure/Guest-Configuration-Extension/pkg/seqnum"
 	"github.com/stretchr/testify/require"
 )
 
