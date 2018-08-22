@@ -13,7 +13,10 @@ import (
 	"time"
 
 	"github.com/Azure/Guest-Configuration-Extension/pkg/seqnum"
+	"github.com/mcuadros/go-version"
 	"github.com/pkg/errors"
+	"io/ioutil"
+	"strings"
 )
 
 type cmdfunc func(hEnv vmextension.HandlerEnvironment, seqNum int) (string, error)
@@ -49,6 +52,7 @@ var (
 
 func install(hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
 	lg.event("installed", "")
+	telemetry(telemetryScenario, "extension install succeeded", true, 0)
 
 	return "", nil
 }
@@ -73,7 +77,7 @@ func enable(hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
 	}
 
 	// parse the version string, log it, and send it through telemetry
-	version, err := parseVersionString(agentZip)
+	version, err := parseAgentVersionString(agentZip)
 	if err != nil {
 		lg.customLog(logMessage, "failed to parse version string", logError, err, logAgentName, agentZip)
 		return "", errors.Wrap(err, "failed to parse version string")
@@ -108,20 +112,23 @@ func enable(hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
 	runErr = runCmd("bash ./install.sh", agentDirectory, cfg)
 	if runErr != nil {
 		lg.messageAndError("agent installation failed", runErr)
+		telemetry(telemetryScenario, "agent installation failed: "+runErr.Error(), false, 0)
 	} else {
 		lg.customLog(logMessage, "agent installation succeeded", logEvent, "enabling agent")
+		telemetry(telemetryScenario, "agent installation succeeded", true, 0)
 		runErr = runCmd("bash ./enable.sh", agentDirectory, cfg)
 		if runErr != nil {
 			lg.messageAndError("enable agent failed", runErr)
+			telemetry(telemetryScenario, "agent enable failed: "+runErr.Error(), false, 0)
 		} else {
 			lg.message("enable agent succeeded")
+			telemetry(telemetryScenario, "agent enable succeeded", true, 0)
 		}
 	}
 
 	// collect the logs if available and send telemetry updates
 	getStdPipesAndTelemetry(unzipDir, runErr)
 
-	// TODO: write message for portal
 	msg := ""
 
 	return msg, runErr
@@ -134,24 +141,31 @@ func update(hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
 		return "", errors.Wrap(err, "failed to get configuration")
 	}
 
-	// get old extension path
+	// get old agent path
+	oldAgent, err := getOldAgentPath()
+	if err != nil {
+		lg.messageAndError("failed to get old agent path", err)
+		return "", errors.Wrap(err, "failed to get old agent path")
+	}
 
 	// run update.sh to update the agent
 	lg.event("updating agent", "")
 	unzipDir, agentDirectory := unzipAndAgentDirectories()
-	runErr := runCmd("bash ./update.sh", agentDirectory, cfg)
+	runErr := runCmd("bash ./update.sh "+oldAgent, agentDirectory, cfg)
 	if runErr != nil {
-		// TODO: User doesn't need to know this?
 		lg.messageAndError("agent update failed", runErr)
+		telemetry(telemetryScenario, "agent update failed: "+runErr.Error(), false, 0)
 	} else {
 		lg.message("agent update succeeded")
+		telemetry(telemetryScenario, "agent update succeeded", true, 0)
 	}
 
 	// collect the logs if available and send telemetry updates
 	getStdPipesAndTelemetry(unzipDir, runErr)
-	// TODO sendTelemetryMessage()
 
-	return "", runErr
+	msg := ""
+
+	return msg, runErr
 }
 
 func disable(hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
@@ -167,14 +181,15 @@ func disable(hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
 	runErr := runCmd("bash ./disable.sh", agentDirectory, cfg)
 	if runErr != nil {
 		lg.messageAndError("agent disable failed", runErr)
+		telemetry(telemetryScenario, "agent disable failed: "+runErr.Error(), false, 0)
 	} else {
 		lg.message("agent disable succeeded")
+		telemetry(telemetryScenario, "agent disable succeeded", true, 0)
 	}
 
 	// collect the logs if available and send telemetry updates
 	getStdPipesAndTelemetry(unzipDir, runErr)
 
-	// TODO: change msg to "disable succeeded" or something
 	msg := ""
 
 	return msg, nil
@@ -192,16 +207,16 @@ func uninstall(hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) 
 	unzipDir, agentDirectory := unzipAndAgentDirectories()
 	runErr := runCmd("bash ./uninstall.sh", agentDirectory, cfg)
 	if runErr != nil {
-		// TODO: user doesn't need to know (same for disable)
 		lg.messageAndError("agent uninstall failed", runErr)
+		telemetry(telemetryScenario, "agent uninstall failed: "+runErr.Error(), false, 0)
 	} else {
 		lg.message("agent uninstall succeeded")
+		telemetry(telemetryScenario, "agent uninstall succeeded", true, 0)
 	}
 
 	// collect the logs if available and send telemetry updates
 	getStdPipesAndTelemetry(unzipDir, runErr)
 
-	// TODO: fix msg
 	msg := ""
 
 	return msg, nil
@@ -221,13 +236,77 @@ func unzipAndAgentDirectories() (unzipDirectory string, agentDirectory string) {
 	return unzipDirectory, agentDirectory
 }
 
-func parseVersionString(agentName string) (version string, err error) {
+func parseAgentVersionString(agentName string) (version string, err error) {
 	r, _ := regexp.Compile("^([./a-zA-Z0-9]*)_([0-9.]*)?[.](.*)$")
 	matches := r.FindStringSubmatch(agentName)
 	if len(matches) != 4 {
 		return "", errors.New("incorrect naming format for agent")
 	}
 	return matches[2], nil
+}
+
+func parseAndCompareExtensionVersions(extension1 string, extension2 string) (extension string, err error) {
+	r, _ := regexp.Compile("^([./a-zA-Z]*)-([0-9.]*)?$")
+	matches := r.FindStringSubmatch(extension1)
+	if len(matches) != 3 {
+		return "", errors.New("could not parse extension name")
+	}
+	version1 := matches[2]
+
+	matches = r.FindStringSubmatch(extension2)
+	if len(matches) != 3 {
+		return "", errors.New("could not parse extension name")
+	}
+	version2 := matches[2]
+
+	// compare versions
+	v1smaller := version.Compare(version1, version2, "<")
+	if v1smaller == true {
+		return extension1, nil
+	} else {
+		return extension2, nil
+	}
+}
+
+func getOldAgentPath() (string, error) {
+	// get the current path of the extension
+	currentPath, err := os.Getwd()
+	if err != nil {
+		lg.messageAndError("failed to get current working directory path", err)
+		return "", err
+	}
+
+	// get the directory of the current extension and read the files in it
+	dir := filepath.Dir(currentPath)
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		lg.messageAndError("could not read files in directory", err)
+		return "", err
+	}
+
+	// get the two extensions in the directory
+	var extensionDirs [2]string
+	i := 0
+	for _, f := range files {
+		if strings.Contains(f.Name(), "Microsoft.GuestConfiguration.Edp.ConfigurationForLinux") {
+			extensionDirs[i] = f.Name()
+			i++
+		}
+		if len(extensionDirs) <= i {
+			break
+		}
+	}
+
+	// get the versions and compare them
+	extension, err := parseAndCompareExtensionVersions(extensionDirs[0], extensionDirs[1])
+	if err != nil {
+		lg.messageAndError("failed to compare extension versions", err)
+	}
+
+	// get old agent path
+	oldAgent := filepath.Join(dir, extension, agentDir, agentName)
+
+	return oldAgent, nil
 }
 
 // checkAndSaveSeqNum checks if the given seqNum is already processed
