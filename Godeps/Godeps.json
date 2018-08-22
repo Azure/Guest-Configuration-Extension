@@ -17,11 +17,6 @@
 			"Rev": "d1d2547150489b2495a8d09a642e7f515bbf484f"
 		},
 		{
-			"ImportPath": "github.com/Azure/custom-script-extension-linux/pkg/seqnum",
-			"Comment": "v2.0.6-4-g4816514",
-			"Rev": "4816514e13c3f72d040b3a370a2abe99aafc3cc6"
-		},
-		{
 			"ImportPath": "github.com/davecgh/go-spew/spew",
 			"Comment": "v1.1.0-12-g8991bc2",
 			"Rev": "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
@@ -46,6 +41,10 @@
 			"Rev": "b84e30acd515aadc4b783ad4ff83aff3299bdfe0"
 		},
 		{
+			"ImportPath": "github.com/mcuadros/go-version",
+			"Rev": "6d5863ca60fa6fe914b5fd43ed8533d7567c5b0b"
+		},
+		{
 			"ImportPath": "github.com/pkg/errors",
 			"Comment": "v0.8.0-12-g816c908",
 			"Rev": "816c9085562cd7ee03e7f8188a1cfd942858cded"
@@ -57,6 +56,11 @@
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/assert",
+			"Comment": "v1.2.2",
+			"Rev": "f35b8ab0b5a2cef36673838d662e249dd9c94686"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/require",
 			"Comment": "v1.2.2",
 			"Rev": "f35b8ab0b5a2cef36673838d662e249dd9c94686"
 		},
