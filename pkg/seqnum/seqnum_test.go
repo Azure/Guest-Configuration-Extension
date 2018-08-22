@@ -87,7 +87,7 @@ func TestIsSmallerThan(t *testing.T) {
 
 	b, err := seqnum.IsSmallerThan(fp, 0)
 	require.Nil(t, err)
-	require.False(t, b, "stored=0 ≮ given=0")
+	require.True(t, b, "stored=0 <= given=0")
 
 	b, err = seqnum.IsSmallerThan(fp, 1)
 	require.Nil(t, err)
@@ -101,7 +101,7 @@ func TestIsSmallerThan(t *testing.T) {
 
 	b, err = seqnum.IsSmallerThan(fp, 1)
 	require.Nil(t, err)
-	require.False(t, b, "stored=1 ≮ given=1")
+	require.True(t, b, "stored=1 <= given=1")
 
 	b, err = seqnum.IsSmallerThan(fp, 2)
 	require.Nil(t, err)
