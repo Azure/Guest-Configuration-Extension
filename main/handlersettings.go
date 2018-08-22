@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
-	"github.com/go-kit/kit/log"
 	"github.com/pkg/errors"
 )
 
@@ -89,31 +88,31 @@ type protectedSettings struct {
 
 // parseAndValidateSettings reads configuration from configFolder, decrypts it,
 // runs JSON-schema and logical validation on it and returns it back.
-func parseAndValidateSettings(logger log.Logger, configFolder string) (h handlerSettings, _ error) {
-	logger.Log(logEvent, "reading configuration")
+func parseAndValidateSettings(configFolder string) (h handlerSettings, _ error) {
+	lg.event("reading configuration", "")
 	pubJSON, protJSON, err := readSettings(configFolder)
 	if err != nil {
 		return h, err
 	}
-	logger.Log(logEvent, "read configuration")
+	lg.event("read configuration", "")
 
-	logger.Log(logEvent, "validating json schema")
+	lg.event("validating json schema", "")
 	if err := validateSettingsSchema(pubJSON, protJSON); err != nil {
 		return h, errors.Wrap(err, "json validation error")
 	}
-	logger.Log(logEvent, "json schema valid")
+	lg.event("json schema valid", "")
 
-	logger.Log(logEvent, "parsing configuration json")
+	lg.event("parsing configuration json", "")
 	if err := vmextension.UnmarshalHandlerSettings(pubJSON, protJSON, &h.publicSettings, &h.protectedSettings); err != nil {
 		return h, errors.Wrap(err, "json parsing error")
 	}
-	logger.Log(logEvent, "parsed configuration json")
+	lg.event("parsed configuration json", "")
 
-	logger.Log(logEvent, "validating configuration logically")
+	lg.event("validating configuration logically", "")
 	if err := h.validate(); err != nil {
 		return h, errors.Wrap(err, "invalid configuration")
 	}
-	logger.Log(logEvent, "validated configuration")
+	lg.event("validated configuration", "")
 	return h, nil
 }
 

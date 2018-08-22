@@ -8,7 +8,6 @@ import (
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/Azure/azure-docker-extension/pkg/vmextension/status"
-	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,7 +30,7 @@ func Test_reportStatus_fails(t *testing.T) {
 	fakeEnv := vmextension.HandlerEnvironment{}
 	fakeEnv.HandlerEnvironment.StatusFolder = "/non-existing/dir/"
 
-	err := reportStatus(log.NewNopLogger(), fakeEnv, 1, status.StatusSuccess, cmdEnable, "")
+	err := reportStatus(fakeEnv, 1, status.StatusSuccess, cmdEnable, "")
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "failed to save handler status")
 }
@@ -44,7 +43,7 @@ func Test_reportStatus_fileExists(t *testing.T) {
 	fakeEnv := vmextension.HandlerEnvironment{}
 	fakeEnv.HandlerEnvironment.StatusFolder = tmpDir
 
-	require.Nil(t, reportStatus(log.NewNopLogger(), fakeEnv, 1, status.StatusError, cmdEnable, "FOO ERROR"))
+	require.Nil(t, reportStatus(fakeEnv, 1, status.StatusError, cmdEnable, "FOO ERROR"))
 
 	path := filepath.Join(tmpDir, "1.status")
 	b, err := ioutil.ReadFile(path)
@@ -60,7 +59,7 @@ func Test_reportStatus_checksIfShouldBeReported(t *testing.T) {
 
 		fakeEnv := vmextension.HandlerEnvironment{}
 		fakeEnv.HandlerEnvironment.StatusFolder = tmpDir
-		require.Nil(t, reportStatus(log.NewNopLogger(), fakeEnv, 2, status.StatusSuccess, c, ""))
+		require.Nil(t, reportStatus(fakeEnv, 2, status.StatusSuccess, c, ""))
 
 		fp := filepath.Join(tmpDir, "2.status")
 		_, err = os.Stat(fp) // check if the .status file is there

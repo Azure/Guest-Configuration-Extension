@@ -42,14 +42,12 @@ var (
 	// agentName contains the .sh files
 	// stored under the agent version
 	agentName = "DesiredStateConfiguration"
+
+	// the logger that will be used throughout
+	lg = newLogger()
 )
 
 func main() {
-	lg := newLogger()
-
-	//logger := log.With(log.With(log.NewSyncLogger(log.NewLogfmtLogger(
-	//	os.Stdout)), "time", log.DefaultTimestamp), "version", VersionString())
-
 	// parse the command line arguments
 	flag.Parse()
 	flags := flags{*verbose, *debug}
@@ -57,9 +55,9 @@ func main() {
 	lg.with("operation", cmd.name)
 
 	// log flag settings and command name
-	lg.customLogMultiple(map[string]string{logMessage: "flags settings", "verbose": strconv.FormatBool(flags.verbose),
-		"debug": strconv.FormatBool(flags.debug)})
-	lg.customLogSingle("command name", cmd.name)
+	lg.customLog(logMessage, "flags settings", "verbose", strconv.FormatBool(flags.verbose),
+		"debug", strconv.FormatBool(flags.debug))
+	lg.customLog("command name", cmd.name)
 
 	// parse extension environment
 	hEnv, err := vmextension.GetHandlerEnv()
@@ -80,10 +78,10 @@ func main() {
 	lg.with("seqNum", strconv.Itoa(seqNum))
 
 	// check sub-command preconditions, if any, before executing
-	lg.event("start")
+	lg.event("start", "")
 	if cmd.pre != nil {
-		lg.event("pre-check")
-		if err := cmd.pre(lg, seqNum); err != nil {
+		lg.event("pre-check", "")
+		if err := cmd.pre(seqNum); err != nil {
 			lg.messageAndError("pre-check failed", err)
 			telemetry(telemetryScenario, "enable pre-check failed", false, 0)
 			os.Exit(cmd.failExitCode)
@@ -91,16 +89,16 @@ func main() {
 	}
 
 	// execute the command
-	lg.event("reporting status")
-	reportStatus(lg.getLogger(), hEnv, seqNum, status.StatusTransitioning, cmd, "")
-	msg, err := cmd.f(lg, hEnv, seqNum)
+	lg.event("reporting status", "")
+	reportStatus(hEnv, seqNum, status.StatusTransitioning, cmd, "")
+	msg, err := cmd.f(hEnv, seqNum)
 	if err != nil {
 		lg.messageAndError("command failed", err)
-		reportStatus(lg.getLogger(), hEnv, seqNum, status.StatusError, cmd, err.Error()+msg)
+		reportStatus(hEnv, seqNum, status.StatusError, cmd, err.Error()+msg)
 		os.Exit(cmd.failExitCode)
 	}
-	reportStatus(lg.getLogger(), hEnv, seqNum, status.StatusSuccess, cmd, msg)
-	lg.event("end")
+	reportStatus(hEnv, seqNum, status.StatusSuccess, cmd, msg)
+	lg.event("end", "")
 	os.Exit(successCode)
 }
 

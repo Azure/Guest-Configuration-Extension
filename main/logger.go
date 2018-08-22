@@ -20,50 +20,42 @@ const (
 )
 
 type LinuxLogger struct {
-	lg log.Logger
+	logger log.Logger
 }
 
 // create a new LinuxLogger
 func newLogger() LinuxLogger {
 	nop := log.With(log.With(log.NewSyncLogger(log.NewLogfmtLogger(
 		os.Stdout)), "time", log.DefaultTimestamp), "version", VersionString())
-	logger := LinuxLogger{nop}
+	lg := LinuxLogger{nop}
 
-	return logger
+	return lg
 }
 
-func (logger LinuxLogger) getLogger() log.Logger {
-	return logger.lg
+func (lg LinuxLogger) with(key string, value string) {
+	lg.logger = log.With(lg.logger, key, value)
 }
 
-func (logger LinuxLogger) with(key string, value string) {
-	logger.lg = log.With(logger.lg, key, value)
+func (lg LinuxLogger) output(output string) {
+	lg.logger.Log(logOutput, output)
 }
 
-func (logger LinuxLogger) output(output string) {
-	logger.lg.Log(logOutput, output)
+func (lg LinuxLogger) event(event string, message string) {
+	if message != "" {
+		lg.logger.Log(logEvent, event, logMessage, message)
+	} else {
+		lg.logger.Log(logEvent, event)
+	}
 }
 
-func (logger LinuxLogger) event(event string) {
-	logger.lg.Log(logEvent, event)
+func (lg LinuxLogger) message(message string) {
+	lg.logger.Log(logMessage, message)
 }
 
-func (logger LinuxLogger) message(message string) {
-	logger.lg.Log(logMessage, message)
+func (lg LinuxLogger) messageAndError(message string, error error) {
+	lg.logger.Log(logMessage, message, logError, error)
 }
 
-func (logger LinuxLogger) messageAndError(message string, error error) {
-	logger.lg.Log(logMessage, message, logError, error)
-}
-
-func (logger LinuxLogger) eventAndMessage(event string, message string) {
-	logger.lg.Log(logEvent, event, logMessage, message)
-}
-
-func (logger LinuxLogger) customLogSingle(key string, value string) {
-	logger.lg.Log(key, value)
-}
-
-func (logger LinuxLogger) customLogMultiple(keyvals ...interface{}) {
-	logger.lg.Log(keyvals)
+func (lg LinuxLogger) customLog(keyvals ...interface{}) {
+	lg.logger.Log(keyvals)
 }
