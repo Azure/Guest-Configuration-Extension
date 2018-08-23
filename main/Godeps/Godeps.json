@@ -1,11 +1,13 @@
 {
-	"ImportPath": "github.com/Azure/Guest-Configuration-Extension",
+	"ImportPath": "github.com/Azure/Guest-Configuration-Extension/main",
 	"GoVersion": "go1.10",
 	"GodepVersion": "v80",
-	"Packages": [
-		"./main/"
-	],
 	"Deps": [
+		{
+			"ImportPath": "github.com/Azure/Guest-Configuration-Extension/pkg/seqnum",
+			"Comment": "v0.3.0-8-g9045c55",
+			"Rev": "9045c558d0eabef49520e0b319ce5b897c166ada"
+		},
 		{
 			"ImportPath": "github.com/Azure/azure-docker-extension/pkg/vmextension",
 			"Comment": "1.2.2-4-gd1d2547",
