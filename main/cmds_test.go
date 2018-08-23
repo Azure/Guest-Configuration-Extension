@@ -89,6 +89,11 @@ func Test_parseVersionString_success(t *testing.T) {
 	require.Nil(t, err)
 }
 
+func Test_getOldAgentPath(t *testing.T) {
+	_, err := getOldAgentPath()
+	require.Nil(t, err)
+}
+
 func Test_runCmd_fail(t *testing.T) {
 	dir, err := ioutil.TempDir("", "")
 	require.Nil(t, err)
@@ -158,12 +163,6 @@ func Test_unzip_pass(t *testing.T) {
 	require.NotEmpty(t, filenames)
 
 	Test_cleanUpTests(t)
-}
-
-func Test_getOldAgentPath(t *testing.T) {
-	path, err := getOldAgentPath()
-	require.Nil(t, err)
-	t.Log(path)
 }
 
 func Test_install(t *testing.T) {
