@@ -8,7 +8,6 @@ RUN apt-get -qqy update && \
 # Create the directories and files that need to be present
 RUN mkdir -p /var/lib/waagent && \
         mkdir -p /var/lib/waagent/Extension/config && \
-        mkdir -p /var/lib/waagent/Extension/agent && \
         mkdir -p /var/lib/waagent/agent && \
         touch /var/lib/waagent/Extension/config/0.settings && \
         mkdir -p /var/lib/waagent/Extension/status && \
@@ -16,7 +15,6 @@ RUN mkdir -p /var/lib/waagent && \
 
 RUN chown root /var/lib/waagent && \
         chown root /var/lib/waagent/Extension/config && \
-        chown root /var/lib/waagent/Extension/agent && \
         chown root /var/lib/waagent/agent && \
         chown root /var/lib/waagent/Extension/config/0.settings && \
         chown root /var/lib/waagent/Extension/status && \
