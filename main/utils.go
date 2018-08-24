@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"fmt"
+	"github.com/Azure/Guest-Configuration-Extension/pkg/seqnum"
 	"github.com/mcuadros/go-version"
 	"github.com/pkg/errors"
 	"io"
@@ -12,8 +13,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/Azure/Guest-Configuration-Extension/pkg/seqnum"
 )
 
 func min(a int, b int) int {
@@ -46,27 +45,25 @@ func parseAndLogAgentVersion(agentName string) (agentVersion string, err error) 
 	return agentVersion, nil
 }
 
-func parseAndCompareExtensionVersions(extension1 string, extension2 string) (extension string, err error) {
+func parseAndCompareExtensionVersions(extensions []string) (extension string, err error) {
 	r, _ := regexp.Compile("^([./a-zA-Z]*)-([0-9.]*)?$")
-	matches := r.FindStringSubmatch(extension1)
-	if len(matches) != 3 {
-		return "", errors.New("could not parse extension name")
+	var versions []string
+	for _, ext := range extensions {
+		match := r.FindStringSubmatch(ext)
+		if len(match) != 3 {
+			return "", errors.New("could not parse extension name")
+		}
+		versions = append(versions, match[2])
 	}
-	version1 := matches[2]
 
-	matches = r.FindStringSubmatch(extension2)
-	if len(matches) != 3 {
-		return "", errors.New("could not parse extension name")
+	earliestVersion := versions[0]
+	for _, v := range versions {
+		if version.Compare(v, earliestVersion, "<") {
+			earliestVersion = v
+		}
 	}
-	version2 := matches[2]
 
-	// compare versions
-	v1smaller := version.Compare(version1, version2, "<")
-	if v1smaller == true {
-		return extension1, nil
-	} else {
-		return extension2, nil
-	}
+	return "Microsoft.GuestConfiguration.Edp.ConfigurationForLinux-" + earliestVersion, nil
 }
 
 func getOldAgentPath() (string, error) {
@@ -86,20 +83,15 @@ func getOldAgentPath() (string, error) {
 	}
 
 	// get the two extensions in the directory
-	var extensionDirs [2]string
-	i := 0
+	var extensionDirs []string
 	for _, f := range files {
 		if strings.Contains(f.Name(), "Microsoft.GuestConfiguration.Edp.ConfigurationForLinux") {
-			extensionDirs[i] = f.Name()
-			i++
-		}
-		if len(extensionDirs) <= i {
-			break
+			extensionDirs = append(extensionDirs, f.Name())
 		}
 	}
 
 	// get the versions and compare them
-	extension, err := parseAndCompareExtensionVersions(extensionDirs[0], extensionDirs[1])
+	extension, err := parseAndCompareExtensionVersions(extensionDirs)
 	if err != nil {
 		lg.messageAndError("failed to compare extension versions", err)
 	}
