@@ -62,11 +62,6 @@ func Test_parseVersionString_success(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func Test_getOldAgentPath(t *testing.T) {
-	_, err := getOldAgentPath()
-	require.Nil(t, err)
-}
-
 func Test_parseAndCompareExtensionVersions(t *testing.T) {
 	extensions := []string{"Microsoft.GuestConfiguration.Edp.ConfigurationForLinux-0.4.0", "Microsoft.GuestConfiguration.Edp.ConfigurationForLinux-2.5.1", "Microsoft.GuestConfiguration.Edp.ConfigurationForLinux-1.7.8"}
 	_, err := parseAndCompareExtensionVersions(extensions)
