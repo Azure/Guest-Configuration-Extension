@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
+	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,25 +36,26 @@ func Test_commands_shouldReportStatus(t *testing.T) {
 }
 
 func Test_install(t *testing.T) {
-	message, err := install(vmextension.HandlerEnvironment{}, 0)
+	err := install(ExtensionLogger{log.NewNopLogger(), ""},
+		vmextension.HandlerEnvironment{},
+		0)
 	require.Nil(t, err)
-	require.Empty(t, message)
 }
 
 func Test_enablePre(t *testing.T) {
-	dir := filepath.Join(mostRecentSequence)
+	dir := filepath.Join(MostRecentSequence)
 	os.RemoveAll(dir)
 	defer os.RemoveAll(dir)
 
-	err := enablePre(0)
+	err := enablePre(noopLogger, 0)
 	require.Nil(t, err)
 
-	err = enablePre(0)
+	err = enablePre(noopLogger, 0)
 	require.Nil(t, err)
 
-	err = enablePre(1)
+	err = enablePre(noopLogger, 1)
 	require.Nil(t, err)
 
-	err = enablePre(4)
+	err = enablePre(noopLogger, 4)
 	require.Nil(t, err)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/Azure/azure-docker-extension/pkg/vmextension/status"
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
+	"github.com/go-kit/kit/log"
 	"strconv"
 )
 
@@ -22,83 +23,65 @@ var (
 	verbose = flag.Bool("verbose", false, "Return a detailed report")
 	debug   = flag.Bool("debug", false, "Return a debug report")
 
-	// dataDir is where we store the downloaded files, logs and state for
-	// the extension handler
-	dataDir = "./"
-
-	// mrseq holds the processed highest sequence number to make sure
-	// we do not run the command more than once for the same sequence
-	// number. Stored under dataDir. This file is auto-preserved by the agent.
-	mostRecentSequence = "mrseq"
-
-	// agentDir is where the agent is stored
-	// stored until dataDir
-	agentDir = "GCAgent"
-
-	// agentZip is the directory where the agent package is stored
-	// it will be unzipped into {dataDir}/GCAgent/{version}/agent
-	agentZip = "agent/DesiredStateConfiguration_1.0.0.zip"
-
-	// agentName contains the .sh files
-	// stored under the agent version
-	agentName = "DesiredStateConfiguration"
-
 	// the logger that will be used throughout
-	lg = newLogger()
+	lg ExtensionLogger
+
+	// this logger is used only for testing purposes
+	noopLogger = ExtensionLogger{log.NewNopLogger(), ""}
 )
 
 func main() {
-	// parse the command line arguments
-	flag.Parse()
-	flags := flags{*verbose, *debug}
-	cmd := parseCmd(flag.Args())
-	lg.with("operation", cmd.name)
-
-	// log flag settings and command name
-	lg.customLog(logMessage, "flags settings", "verbose", strconv.FormatBool(flags.verbose),
-		"debug", strconv.FormatBool(flags.debug))
-	lg.customLog("command name", cmd.name)
-
 	// parse extension environment
-	hEnv, err := vmextension.GetHandlerEnv()
-	if err != nil {
-		lg.messageAndError("failed to parse handlerEnv", err)
-		os.Exit(cmd.failExitCode)
+	hEnv, handlerErr := vmextension.GetHandlerEnv()
+	if handlerErr != nil {
+		lg.eventError("failed to parse handlerEnv", handlerErr)
+		os.Exit(failureCode)
 	}
 
-	// get sequence number
-	seqNum, err := vmextension.FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
-	if err != nil {
-		lg.messageAndError("failed to find sequence number", err)
+	lg = newLogger(hEnv.HandlerEnvironment.LogFolder)
+
+	// parse the command line arguments
+	flag.Parse()
+	cmd := parseCmd(flag.Args())
+	lg.with("Operation: ", cmd.name)
+	lg.customLog("Command: ", cmd.name)
+
+	seqNum, seqErr := vmextension.FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
+	if seqErr != nil {
+		lg.eventError("failed to find sequence number", seqErr)
 		// only throw a fatal error if the command is not install
 		if cmd.name != "install" {
 			os.Exit(cmd.failExitCode)
 		}
 	}
-	lg.with("seqNum", strconv.Itoa(seqNum))
+	lg.event("seqNum" + strconv.Itoa(seqNum))
 
 	// check sub-command preconditions, if any, before executing
-	lg.event("start", "")
+	lg.event("start operation")
 	if cmd.pre != nil {
-		lg.event("pre-check", "")
-		if err := cmd.pre(seqNum); err != nil {
-			lg.messageAndError("pre-check failed", err)
-			telemetry(telemetryScenario, "enable pre-check failed", false, 0)
+		lg.event("pre-check")
+		if preErr := cmd.pre(lg, seqNum); preErr != nil {
+			lg.eventError("pre-check failed", preErr)
+			telemetry(TelemetryScenario, "enable pre-check failed: "+preErr.Error(), false, 0)
 			os.Exit(cmd.failExitCode)
 		}
 	}
 
 	// execute the command
-	lg.event("reporting status", "")
-	reportStatus(hEnv, seqNum, status.StatusTransitioning, cmd, "")
-	msg, err := cmd.f(hEnv, seqNum)
-	if err != nil {
-		lg.messageAndError("command failed", err)
-		reportStatus(hEnv, seqNum, status.StatusError, cmd, err.Error()+msg)
+	lg.event("reporting status")
+	reportStatus(lg, hEnv, seqNum, status.StatusTransitioning, cmd, "Transitioning")
+
+	if cmdErr := cmd.f(lg, hEnv, seqNum); cmdErr != nil {
+		lg.eventError("command failed", cmdErr)
+		reportStatus(lg, hEnv, seqNum, status.StatusError, cmd, cmdErr.Error())
+		telemetry(TelemetryScenario, cmd.name+" failed: "+cmdErr.Error(), false, 0)
 		os.Exit(cmd.failExitCode)
 	}
-	reportStatus(hEnv, seqNum, status.StatusSuccess, cmd, msg)
-	lg.event("end", "")
+	reportStatus(lg, hEnv, seqNum, status.StatusSuccess, cmd, "")
+
+	telemetry(TelemetryScenario, cmd.name+" succeeded", false, 0)
+	lg.event(cmd.name + " end")
+
 	os.Exit(successCode)
 }
 
@@ -107,7 +90,10 @@ func main() {
 func parseCmd(args []string) cmd {
 	if len(args) != 1 {
 		if len(args) < 1 {
-			fmt.Println("Not enough arguments")
+			fmt.Printf("Not enough arguments, %d", len(args))
+			fmt.Println()
+			fmt.Printf("%v", args)
+			fmt.Println()
 		} else {
 			fmt.Println("Too many arguments")
 		}

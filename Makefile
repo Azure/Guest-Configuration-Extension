@@ -11,6 +11,8 @@ bundle: clean binary
 	zip -j ./$(BUNDLEDIR)/$(BUNDLE) ./misc/HandlerManifest.json
 	zip -j ./$(BUNDLEDIR)/$(BUNDLE) ./misc/manifest.xml
 
+build: binary
+
 binary: clean
 	if [ -z "$$GOPATH" ]; then \
 		echo "GOPATH is not set"; \

@@ -8,8 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-type cmdfunc func(hEnv vmextension.HandlerEnvironment, seqNum int) (string, error)
-type prefunc func(seqNum int) error
+type cmdfunc func(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int) error
+type prefunc func(lg ExtensionLogger, seqNum int) error
 
 // Add more fields as necessary
 type cmd struct {
@@ -39,185 +39,177 @@ var (
 	}
 )
 
-func install(hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
-	lg.event("installed", "")
-	telemetry(telemetryScenario, "extension install succeeded", true, 0)
-
-	return "", nil
+func install(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int) error {
+	msg := "Extension install succeeded"
+	lg.event(msg)
+	telemetry(TelemetryScenario, msg, true, 0)
+	return nil
 }
 
-func enablePre(seqNum int) error {
+func enablePre(lg ExtensionLogger, seqNum int) error {
 	// exit if this sequence number is already processed
 	// if not, save the sequence number before proceeding
-	if shouldExit, err := checkAndSaveSeqNum(seqNum, mostRecentSequence); err != nil {
+	if shouldExit, err := checkAndSaveSeqNum(lg, seqNum, MostRecentSequence); err != nil {
 		return errors.Wrap(err, "failed to process seqnum")
 	} else if shouldExit {
-		lg.event("exit", "this sequence number smaller than the currently processed sequence number, will not run again")
+		lg.eventError("exit", errors.New("this sequence number smaller than the currently processed sequence number, will not run again"))
 		os.Exit(successCode)
 	}
 	return nil
 }
 
-func enable(hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
+func enable(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int) error {
 	// parse the extension handler settings (file not available prior to 'enable')
 	cfg, err := parseAndValidateSettings(hEnv.HandlerEnvironment.ConfigFolder)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get configuration")
+		return errors.Wrap(err, "failed to get configuration")
 	}
 
 	// parse and log the agent version
-	_, err = parseAndLogAgentVersion(agentZip)
-	if err != nil {
-		lg.customLog(logMessage, "failed to parse version string", logError, err, logAgentName, agentZip)
-		return "", errors.Wrap(err, "failed to parse version string")
-	}
+	//_, err = parseAndLogAgentVersion(AgentZipDir)
+	//if err != nil {
+	//	lg.customLog(logEvent, "failed to parse version string", logError, err, logAgentName, AgentZipDir)
+	//	return errors.Wrap(err, "failed to parse version string")
+	//}
 
 	// check to see if agent directory exists
-	unzipDir, agentDirectory := unzipAndAgentDirectories()
+	unzipDir, agentDirectory := getAgentPaths()
 	var runErr error = nil
 	if _, err := os.Stat(agentDirectory); err == nil {
 		// directory exists, run enable.sh for agent health check
-		lg.event("agent health check", "")
+		lg.event("agent health check")
 
-		runErr = runCmd("bash ./enable.sh", agentDirectory, cfg)
+		runErr = runCmd(lg, "bash ./enable.sh", agentDirectory, cfg)
 		if runErr != nil {
-			lg.messageAndError("agent health check failed", runErr)
+			lg.eventError("agent health check failed", runErr)
 			os.Exit(agentHealthCheckFailedCode)
 		}
 		os.Exit(successCode)
 	}
 
-	// directory does not exist, unzip agent
-	_, err = unzip(agentZip, unzipDir)
+	// directory does not exist, unzipAgent agent
+	_, err = unzipAgent(lg, AgentZipDir, AgentName, unzipDir)
 	if err != nil {
-		lg.messageAndError("failed to unzip agent dir", err)
-		return "", errors.Wrap(err, "failed to unzip agent")
+		lg.eventError("failed to unzipAgent agent dir", err)
+		return errors.Wrap(err, "failed to unzipAgent agent")
 	}
 	// run install.sh and enable.sh
-	lg.event("installing agent", "")
-	runErr = runCmd("bash ./install.sh", agentDirectory, cfg)
+	lg.event("installing agent")
+	runErr = runCmd(lg, "bash ./install.sh", agentDirectory, cfg)
 	if runErr != nil {
-		lg.messageAndError("agent installation failed", runErr)
-		telemetry(telemetryScenario, "agent installation failed: "+runErr.Error(), false, 0)
+		lg.eventError("agent installation failed", runErr)
+		telemetry(TelemetryScenario, "agent installation failed: "+runErr.Error(), false, 0)
 	} else {
-		lg.customLog(logMessage, "agent installation succeeded", logEvent, "enabling agent")
-		telemetry(telemetryScenario, "agent installation succeeded", true, 0)
-		runErr = runCmd("bash ./enable.sh", agentDirectory, cfg)
+		lg.customLog(logEvent, "agent installation succeeded", logEvent, "enabling agent")
+		telemetry(TelemetryScenario, "agent installation succeeded", true, 0)
+		runErr = runCmd(lg, "bash ./enable.sh", agentDirectory, cfg)
 		if runErr != nil {
-			lg.messageAndError("enable agent failed", runErr)
-			telemetry(telemetryScenario, "agent enable failed: "+runErr.Error(), false, 0)
+			lg.eventError("enable agent failed", runErr)
+			telemetry(TelemetryScenario, "agent enable failed: "+runErr.Error(), false, 0)
 		} else {
-			lg.message("enable agent succeeded")
-			telemetry(telemetryScenario, "agent enable succeeded", true, 0)
+			lg.event("enable agent succeeded")
+			telemetry(TelemetryScenario, "agent enable succeeded", true, 0)
 		}
 	}
 
 	// collect the logs if available and send telemetry updates
-	getStdPipesAndTelemetry(unzipDir, runErr)
+	getStdPipesAndTelemetry(lg, unzipDir, runErr)
 
-	msg := ""
-
-	return msg, runErr
+	return runErr
 }
 
-func update(hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
+func update(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int) error {
 	// parse the extension handler settings
 	cfg, err := parseAndValidateSettings(hEnv.HandlerEnvironment.ConfigFolder)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get configuration")
+		return errors.Wrap(err, "failed to get configuration")
 	}
 
 	// get old agent path
-	oldAgent, err := getOldAgentPath()
+	oldAgent, err := getOldAgentPath(lg)
 	if err != nil {
-		lg.messageAndError("failed to get old agent path", err)
-		return "", errors.Wrap(err, "failed to get old agent path")
+		lg.eventError("failed to get old agent path", err)
+		return errors.Wrap(err, "failed to get old agent path")
 	}
 
 	// parse and log the new agent version
-	_, err = parseAndLogAgentVersion(agentZip)
-	if err != nil {
-		lg.customLog(logMessage, "failed to parse version string", logError, err, logAgentName, agentZip)
-		return "", errors.Wrap(err, "failed to parse version string")
-	}
+	//_, err = parseAndLogAgentVersion(lg, AgentZipDir)
+	//if err != nil {
+	//	lg.customLog(logEvent, "failed to parse version string", logError, err, logAgentName, AgentZipDir)
+	//	return errors.Wrap(err, "failed to parse version string")
+	//}
 
-	// unzip new agent
-	unzipDir, agentDirectory := unzipAndAgentDirectories()
-	_, err = unzip(agentZip, unzipDir)
+	// unzipAgent new agent
+	unzipDir, agentDirectory := getAgentPaths()
+	_, err = unzipAgent(lg, AgentZipDir, AgentName, unzipDir)
 	if err != nil {
-		lg.messageAndError("failed to unzip agent dir", err)
-		return "", errors.Wrap(err, "failed to unzip agent")
+		lg.eventError("failed to unzipAgent agent dir", err)
+		return errors.Wrap(err, "failed to unzipAgent agent")
 	}
 
 	// run new update.sh to update the agent
-	lg.event("updating agent", "")
-	runErr := runCmd("bash ./update.sh "+oldAgent, agentDirectory, cfg)
+	lg.event("updating agent")
+	runErr := runCmd(lg, "bash ./update.sh "+oldAgent, agentDirectory, cfg)
 	if runErr != nil {
-		lg.messageAndError("agent update failed", runErr)
-		telemetry(telemetryScenario, "agent update failed: "+runErr.Error(), false, 0)
+		lg.eventError("agent update failed", runErr)
+		telemetry(TelemetryScenario, "agent update failed: "+runErr.Error(), false, 0)
 	} else {
-		lg.message("agent update succeeded")
-		telemetry(telemetryScenario, "agent update succeeded", true, 0)
+		lg.event("agent update succeeded")
+		telemetry(TelemetryScenario, "agent update succeeded", true, 0)
 	}
 
 	// collect the logs if available and send telemetry updates
-	getStdPipesAndTelemetry(unzipDir, runErr)
+	getStdPipesAndTelemetry(lg, unzipDir, runErr)
 
-	msg := ""
-
-	return msg, runErr
+	return runErr
 }
 
-func disable(hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
+func disable(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int) error {
 	// parse the extension handler settings
 	cfg, err := parseAndValidateSettings(hEnv.HandlerEnvironment.ConfigFolder)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get configuration")
+		return errors.Wrap(err, "failed to get configuration")
 	}
 
 	// run disable.sh to disable the agent
-	lg.event("disabling agent", "")
-	unzipDir, agentDirectory := unzipAndAgentDirectories()
-	runErr := runCmd("bash ./disable.sh", agentDirectory, cfg)
+	lg.event("disabling agent")
+	unzipDir, agentDirectory := getAgentPaths()
+	runErr := runCmd(lg, "bash ./disable.sh", agentDirectory, cfg)
 	if runErr != nil {
-		lg.messageAndError("agent disable failed", runErr)
-		telemetry(telemetryScenario, "agent disable failed: "+runErr.Error(), false, 0)
+		lg.eventError("agent disable failed", runErr)
+		telemetry(TelemetryScenario, "agent disable failed: "+runErr.Error(), false, 0)
 	} else {
-		lg.message("agent disable succeeded")
-		telemetry(telemetryScenario, "agent disable succeeded", true, 0)
+		lg.event("agent disable succeeded")
+		telemetry(TelemetryScenario, "agent disable succeeded", true, 0)
 	}
 
 	// collect the logs if available and send telemetry updates
-	getStdPipesAndTelemetry(unzipDir, runErr)
+	getStdPipesAndTelemetry(lg, unzipDir, runErr)
 
-	msg := ""
-
-	return msg, nil
+	return nil
 }
 
-func uninstall(hEnv vmextension.HandlerEnvironment, seqNum int) (string, error) {
+func uninstall(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int) error {
 	// parse the extension handler settings
 	cfg, err := parseAndValidateSettings(hEnv.HandlerEnvironment.ConfigFolder)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get configuration")
+		return errors.Wrap(err, "failed to get configuration")
 	}
 
 	// run uninstall.sh to uninstall the agent
-	lg.event("uninstalling agent", "")
-	unzipDir, agentDirectory := unzipAndAgentDirectories()
-	runErr := runCmd("bash ./uninstall.sh", agentDirectory, cfg)
+	lg.event("uninstalling agent")
+	unzipDir, agentDirectory := getAgentPaths()
+	runErr := runCmd(lg, "bash ./uninstall.sh", agentDirectory, cfg)
 	if runErr != nil {
-		lg.messageAndError("agent uninstall failed", runErr)
-		telemetry(telemetryScenario, "agent uninstall failed: "+runErr.Error(), false, 0)
+		lg.eventError("agent uninstall failed", runErr)
+		telemetry(TelemetryScenario, "agent uninstall failed: "+runErr.Error(), false, 0)
 	} else {
-		lg.message("agent uninstall succeeded")
-		telemetry(telemetryScenario, "agent uninstall succeeded", true, 0)
+		lg.event("agent uninstall succeeded")
+		telemetry(TelemetryScenario, "agent uninstall succeeded", true, 0)
 	}
 
 	// collect the logs if available and send telemetry updates
-	getStdPipesAndTelemetry(unzipDir, runErr)
+	getStdPipesAndTelemetry(lg, unzipDir, runErr)
 
-	msg := ""
-
-	return msg, nil
+	return nil
 }
