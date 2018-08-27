@@ -46,21 +46,21 @@ func (s *handlerSettings) fileUrls() []string {
 
 // validate makes logical validation on the handlerSettings which already passed
 // the schema validation.
-func (h handlerSettings) validate() error {
-	if h.publicSettings.CommandToExecute != "" && h.protectedSettings.CommandToExecute != "" {
+func (s handlerSettings) validate() error {
+	if s.publicSettings.CommandToExecute != "" && s.protectedSettings.CommandToExecute != "" {
 		return errCmdTooMany
 	}
 
-	if h.publicSettings.Script != "" && h.protectedSettings.Script != "" {
+	if s.publicSettings.Script != "" && s.protectedSettings.Script != "" {
 		return errScriptTooMany
 	}
 
-	if h.commandToExecute() != "" && h.script() != "" {
+	if s.commandToExecute() != "" && s.script() != "" {
 		return errCmdAndScript
 	}
 
-	if (h.protectedSettings.StorageAccountName != "") !=
-		(h.protectedSettings.StorageAccountKey != "") {
+	if (s.protectedSettings.StorageAccountName != "") !=
+		(s.protectedSettings.StorageAccountKey != "") {
 		return errStoragePartialCredentials
 	}
 

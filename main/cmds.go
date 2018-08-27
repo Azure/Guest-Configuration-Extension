@@ -74,7 +74,7 @@ func enable(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int)
 
 	// check to see if agent directory exists
 	unzipDir, agentDirectory := getAgentPaths()
-	var runErr error = nil
+	var runErr error
 	if _, err := os.Stat(agentDirectory); err == nil {
 		// directory exists, run enable.sh for agent health check
 		lg.event("agent health check")

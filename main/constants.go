@@ -22,14 +22,14 @@ const (
 	logVersion   = "version"
 	logPath      = "path"
 
-	// telemetry operations
+	// TelemetryScenario is the operation for telemetry
 	TelemetryScenario = "scenario"
 
 	// DataDir is where we store the downloaded files, logs and state for
-	// the extension handler
+	// the extension handler52
 	DataDir = "./"
 
-	// mrseq holds the processed highest sequence number to make sure
+	// MostRecentSequence (mrseq) holds the processed highest sequence number to make sure
 	// we do not run the command more than once for the same sequence
 	// number. Stored under DataDir. This file is auto-preserved by the agent.
 	MostRecentSequence = "mrseq"
@@ -49,5 +49,9 @@ const (
 	// ExtensionHandlerLogFileName is the log file name.
 	ExtensionHandlerLogFileName = "gcextn-handler.log"
 
-	ExtensionDirPrefix = "Microsoft.GuestConfiguration.Edp.ConfigurationForLinux"
+	// ExtensionDirRegex Regex for finding only Extension directories.
+	ExtensionDirRegex = "Microsoft.GuestConfiguration.?(Edp)?.ConfigurationForLinux-([0-9.]*)"
+
+	// GCExtensionVersionRegex Version of the extension
+	GCExtensionVersionRegex = "^([./a-zA-Z]*)-([0-9.]*)?$"
 )

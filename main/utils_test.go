@@ -63,8 +63,20 @@ func Test_parseVersionString_success(t *testing.T) {
 }
 
 func Test_parseAndCompareExtensionVersions(t *testing.T) {
-	extensions := []string{"Microsoft.GuestConfiguration.Edp.ConfigurationForLinux-0.4.0", "Microsoft.GuestConfiguration.Edp.ConfigurationForLinux-2.5.1", "Microsoft.GuestConfiguration.Edp.ConfigurationForLinux-1.7.8"}
-	_, err := parseAndCompareExtensionVersions(noopLogger, extensions)
+	extensions := []string{
+		"Microsoft.GuestConfiguration.Edp.ConfigurationForLinux-0.4.0",
+		"Microsoft.GuestConfiguration.Edp.ConfigurationForLinux-2.5.1",
+		"Microsoft.GuestConfiguration.Edp.ConfigurationForLinux-1.7.8"}
+	x, err := parseAndCompareExtensionVersions(noopLogger, extensions)
+	require.Equal(t, "Microsoft.GuestConfiguration.Edp.ConfigurationForLinux-0.4.0", x)
+
+	extensions = []string{
+		"Microsoft.GuestConfiguration.ConfigurationForLinux-0.4.0",
+		"Microsoft.GuestConfiguration.ConfigurationForLinux-2.5.1",
+		"Microsoft.GuestConfiguration.ConfigurationForLinux-1.7.8"}
+	x, err = parseAndCompareExtensionVersions(noopLogger, extensions)
+	require.Equal(t, "Microsoft.GuestConfiguration.ConfigurationForLinux-0.4.0", x)
+
 	require.Nil(t, err)
 }
 

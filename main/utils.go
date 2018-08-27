@@ -46,10 +46,13 @@ func parseAndLogAgentVersion(lg ExtensionLogger, agentName string) (agentVersion
 }
 
 func parseAndCompareExtensionVersions(lg ExtensionLogger, extensions []string) (extension string, err error) {
-	r, _ := regexp.Compile("^([./a-zA-Z]*)-([0-9.]*)?$")
+	r, _ := regexp.Compile(GCExtensionVersionRegex)
+
 	var versions []string
+	var match []string
+
 	for _, ext := range extensions {
-		match := r.FindStringSubmatch(ext)
+		match = r.FindStringSubmatch(ext)
 		if len(match) != 3 {
 			return "", errors.New("could not parse extension name from: " + ext)
 		}
@@ -63,7 +66,8 @@ func parseAndCompareExtensionVersions(lg ExtensionLogger, extensions []string) (
 		}
 	}
 
-	return "Microsoft.GuestConfiguration.Edp.ConfigurationForLinux-" + earliestVersion, nil
+	lg.event("Found earliest version of the extension: " + earliestVersion)
+	return match[1] + "-" + earliestVersion, nil
 }
 
 func getOldAgentPath(lg ExtensionLogger) (string, error) {
@@ -86,8 +90,10 @@ func getOldAgentPath(lg ExtensionLogger) (string, error) {
 
 	// get the two extensions in the directory
 	var extensionDirs []string
+	var matches bool
 	for _, f := range files {
-		if strings.Contains(f.Name(), ExtensionDirPrefix) {
+		matches, err = regexp.MatchString(ExtensionDirRegex, f.Name())
+		if matches {
 			extensionDirs = append(extensionDirs, f.Name())
 		}
 	}

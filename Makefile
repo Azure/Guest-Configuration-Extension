@@ -34,6 +34,15 @@ binary: clean
 test: clean
 	go list ./... | grep -v '/vendor/' | xargs go test -cover
 
+sanity: clean prereqs
+	golint ./main/ ./pkg/
+	gofmt -w -s  ./main/ ./pkg/
+	go vet -v ./main/
+	go list ./... | grep -v '/vendor/' | xargs go test -cover
+
+prereqs: clean
+	go get golang.org/x/lint/golint
+
 clean:
 	rm -rf "$(BINDIR)" "$(BUNDLEDIR)"
 
