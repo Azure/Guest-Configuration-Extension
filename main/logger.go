@@ -9,6 +9,7 @@ import (
 	"path"
 )
 
+// ExtensionLogger for all the extension related events
 type ExtensionLogger struct {
 	logger      log.Logger
 	logFilePath string
