@@ -11,14 +11,14 @@ import (
 // status.
 //
 // If an error occurs reporting the status, it will be logged and returned.
-func reportStatus(hEnv vmextension.HandlerEnvironment, seqNum int, t status.Type, c cmd, msg string) error {
+func reportStatus(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int, t status.Type, c cmd, msg string) error {
 	if !c.shouldReportStatus {
 		lg.customLog("status", "not reported for operation (by design)")
 		return nil
 	}
 	s := status.NewStatus(t, c.name, statusMsg(c, t, msg))
 	if err := s.Save(hEnv.HandlerEnvironment.StatusFolder, seqNum); err != nil {
-		lg.customLog("event", "failed to save handler status", "error", err)
+		lg.eventError("failed to save handler status", err)
 		return errors.Wrap(err, "failed to save handler status")
 	}
 	return nil

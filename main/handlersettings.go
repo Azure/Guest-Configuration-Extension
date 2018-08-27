@@ -89,30 +89,30 @@ type protectedSettings struct {
 // parseAndValidateSettings reads configuration from configFolder, decrypts it,
 // runs JSON-schema and logical validation on it and returns it back.
 func parseAndValidateSettings(configFolder string) (h handlerSettings, _ error) {
-	lg.event("reading configuration", "")
+	lg.event("reading configuration")
 	pubJSON, protJSON, err := readSettings(configFolder)
 	if err != nil {
 		return h, err
 	}
-	lg.event("read configuration", "")
+	lg.event("read configuration")
 
-	lg.event("validating json schema", "")
+	lg.event("validating json schema")
 	if err := validateSettingsSchema(pubJSON, protJSON); err != nil {
 		return h, errors.Wrap(err, "json validation error")
 	}
-	lg.event("json schema valid", "")
+	lg.event("json schema valid")
 
-	lg.event("parsing configuration json", "")
+	lg.event("parsing configuration json")
 	if err := vmextension.UnmarshalHandlerSettings(pubJSON, protJSON, &h.publicSettings, &h.protectedSettings); err != nil {
 		return h, errors.Wrap(err, "json parsing error")
 	}
-	lg.event("parsed configuration json", "")
+	lg.event("parsed configuration json")
 
-	lg.event("validating configuration logically", "")
+	lg.event("validating configuration logically")
 	if err := h.validate(); err != nil {
 		return h, errors.Wrap(err, "invalid configuration")
 	}
-	lg.event("validated configuration", "")
+	lg.event("validated configuration")
 	return h, nil
 }
 

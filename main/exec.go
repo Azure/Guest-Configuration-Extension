@@ -16,7 +16,7 @@ import (
 //
 // On error, an exit code may be returned if it is an exit code error.
 // Given stdout and stderr will be closed upon returning.
-func Exec(cmd, workdir string, stdout, stderr io.WriteCloser) (int, error) {
+func Exec(lg ExtensionLogger, cmd, workdir string, stdout, stderr io.WriteCloser) (int, error) {
 	defer stdout.Close()
 	defer stderr.Close()
 
@@ -31,8 +31,8 @@ func Exec(cmd, workdir string, stdout, stderr io.WriteCloser) (int, error) {
 	if ok {
 		if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 			code := status.ExitStatus()
-			telemetry(telemetryScenario, "agent exit code: "+string(code), ok, 0)
-			lg.message("agent exited with: " + string(code))
+			telemetry(TelemetryScenario, "agent exit code: "+string(code), ok, 0)
+			lg.event("agent exited with: " + string(code))
 			return code, fmt.Errorf("command terminated with exit status=%d", code)
 		}
 	}
@@ -45,7 +45,7 @@ func Exec(cmd, workdir string, stdout, stderr io.WriteCloser) (int, error) {
 //
 // Ideally, we execute commands only once per sequence number in custom-script-extension,
 // and save their output under /var/lib/waagent/<dir>/download/<seqnum>/*.
-func ExecCmdInDir(cmd, workdir string) error {
+func ExecCmdInDir(lg ExtensionLogger, cmd, workdir string) error {
 	outFn, errFn := logPaths(workdir)
 
 	outF, err := os.OpenFile(outFn, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
@@ -57,7 +57,7 @@ func ExecCmdInDir(cmd, workdir string) error {
 		return errors.Wrapf(err, "failed to open stderr file")
 	}
 
-	_, err = Exec(cmd, workdir, outF, errF)
+	_, err = Exec(lg, cmd, workdir, outF, errF)
 
 	return err
 }

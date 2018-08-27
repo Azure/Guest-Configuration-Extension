@@ -22,14 +22,14 @@ func min(a int, b int) int {
 	return b
 }
 
-// returns the filepaths for the unzip and agent directories
-func unzipAndAgentDirectories() (unzipDirectory string, agentDirectory string) {
-	unzipDirectory = filepath.Join(dataDir, agentDir)
-	agentDirectory = filepath.Join(unzipDirectory, agentName)
+// returns the filepaths for the unzipAgent and agent directories
+func getAgentPaths() (unzipDirectory string, agentDirectory string) {
+	unzipDirectory = filepath.Join(DataDir, UnzipAgentDir)
+	agentDirectory = filepath.Join(unzipDirectory, AgentName)
 	return unzipDirectory, agentDirectory
 }
 
-func parseAndLogAgentVersion(agentName string) (agentVersion string, err error) {
+func parseAndLogAgentVersion(lg ExtensionLogger, agentName string) (agentVersion string, err error) {
 	r, _ := regexp.Compile("^([./a-zA-Z0-9]*)_([0-9.]*)?[.](.*)$")
 	matches := r.FindStringSubmatch(agentName)
 	if len(matches) != 4 {
@@ -39,19 +39,19 @@ func parseAndLogAgentVersion(agentName string) (agentVersion string, err error) 
 	agentVersion = matches[2]
 
 	// logging and telemetry for agent version
-	lg.customLog(logMessage, "current agent version", logVersion, agentVersion)
-	telemetry(telemetryScenario, "Current agent version: "+agentVersion, true, 0)
+	lg.customLog(logEvent, "current agent version", logVersion, agentVersion)
+	telemetry(TelemetryScenario, "Current agent version: "+agentVersion, true, 0)
 
 	return agentVersion, nil
 }
 
-func parseAndCompareExtensionVersions(extensions []string) (extension string, err error) {
+func parseAndCompareExtensionVersions(lg ExtensionLogger, extensions []string) (extension string, err error) {
 	r, _ := regexp.Compile("^([./a-zA-Z]*)-([0-9.]*)?$")
 	var versions []string
 	for _, ext := range extensions {
 		match := r.FindStringSubmatch(ext)
 		if len(match) != 3 {
-			return "", errors.New("could not parse extension name")
+			return "", errors.New("could not parse extension name from: " + ext)
 		}
 		versions = append(versions, match[2])
 	}
@@ -66,38 +66,45 @@ func parseAndCompareExtensionVersions(extensions []string) (extension string, er
 	return "Microsoft.GuestConfiguration.Edp.ConfigurationForLinux-" + earliestVersion, nil
 }
 
-func getOldAgentPath() (string, error) {
+func getOldAgentPath(lg ExtensionLogger) (string, error) {
 	// get the current path of the extension
 	currentPath, err := os.Getwd()
+	lg.event("Current path: " + currentPath)
 	if err != nil {
-		lg.messageAndError("failed to get current working directory path", err)
+		lg.eventError("failed to get current working directory path", err)
 		return "", err
 	}
 
 	// get the directory of the current extension and read the files in it
 	dir := filepath.Dir(currentPath)
+	lg.event("Current Directory: " + dir)
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
-		lg.messageAndError("could not read files in directory", err)
+		lg.eventError("could not read files in directory", err)
 		return "", err
 	}
 
 	// get the two extensions in the directory
 	var extensionDirs []string
 	for _, f := range files {
-		if strings.Contains(f.Name(), "Microsoft.GuestConfiguration.Edp.ConfigurationForLinux") {
+		if strings.Contains(f.Name(), ExtensionDirPrefix) {
 			extensionDirs = append(extensionDirs, f.Name())
 		}
 	}
 
+	lg.event("All the extension directories found")
+	for _, d := range extensionDirs {
+		lg.event("dir: " + d)
+	}
+
 	// get the versions and compare them
-	extension, err := parseAndCompareExtensionVersions(extensionDirs)
+	extension, err := parseAndCompareExtensionVersions(lg, extensionDirs)
 	if err != nil {
-		lg.messageAndError("failed to compare extension versions", err)
+		lg.eventError("failed to compare extension versions", err)
 	}
 
 	// get old agent path
-	oldAgent := filepath.Join(dir, extension, agentDir, agentName)
+	oldAgent := filepath.Join(dir, extension, UnzipAgentDir, AgentName)
 
 	return oldAgent, nil
 }
@@ -105,7 +112,7 @@ func getOldAgentPath() (string, error) {
 // checkAndSaveSeqNum checks if the given seqNum is already processed
 // according to the specified seqNumFile and if so, returns true,
 // otherwise saves the given seqNum into seqNumFile returns false.
-func checkAndSaveSeqNum(seqNum int, mrseqPath string) (shouldExit bool, _ error) {
+func checkAndSaveSeqNum(lg ExtensionLogger, seqNum int, mrseqPath string) (shouldExit bool, _ error) {
 	lg.customLog(logEvent, "comparing seqnum", logPath, mrseqPath)
 	smaller, err := seqnum.IsSmallerThan(mrseqPath, seqNum)
 	if err != nil {
@@ -118,24 +125,24 @@ func checkAndSaveSeqNum(seqNum int, mrseqPath string) (shouldExit bool, _ error)
 	if err := seqnum.Set(mrseqPath, seqNum); err != nil {
 		return false, errors.Wrap(err, "failed to save the sequence number")
 	}
-	lg.customLog(logMessage, "seqNum saved", logPath, mrseqPath)
+	lg.customLog(logEvent, "seqNum saved", logPath, mrseqPath)
 
 	return false, nil
 }
 
 // runCmd runs the command (extracted from cfg) in the given dir (assumed to exist).
-func runCmd(cmd string, dir string, cfg handlerSettings) (err error) {
+func runCmd(lg ExtensionLogger, cmd string, dir string, cfg handlerSettings) (err error) {
 	lg.customLog(logEvent, "executing command", logOutput, dir)
 
 	begin := time.Now()
-	err = ExecCmdInDir(cmd, dir)
+	err = ExecCmdInDir(lg, cmd, dir)
 	elapsed := time.Now().Sub(begin)
 	isSuccess := err == nil
 
-	lg.customLog(logMessage, "command executed", "command", cmd, "isSuccess", isSuccess, "time elapsed", elapsed)
+	lg.customLog(logEvent, "command executed", "command", cmd, "isSuccess", isSuccess, "time elapsed", elapsed)
 
 	if err != nil {
-		lg.customLog(logMessage, "failed to execute command", logError, err, logOutput, dir)
+		lg.customLog(logEvent, "failed to execute command", logError, err, logOutput, dir)
 		return errors.Wrap(err, "failed to execute command")
 	}
 	lg.customLog(logEvent, "executed command", logOutput, dir)
@@ -144,12 +151,30 @@ func runCmd(cmd string, dir string, cfg handlerSettings) (err error) {
 
 // decompresses a zip archive, moving all files and folders within the zip file
 // to an output directory
-func unzip(source string, dest string) ([]string, error) {
-	lg.event("begin unzipping agent", "")
+func unzipAgent(lg ExtensionLogger, source string, prefix string, dest string) ([]string, error) {
 	var filenames []string
-	r, err := zip.OpenReader(source)
+	var agentZip = ""
+
+	files, err := ioutil.ReadDir(source)
 	if err != nil {
-		return filenames, errors.Wrap(err, "failed to open zip")
+		return filenames, errors.Wrap(err, "failed to open the source dir: "+source)
+	}
+
+	for _, file := range files {
+		if strings.Contains(file.Name(), prefix) {
+			agentZip = filepath.Join(source, file.Name())
+		}
+	}
+
+	if agentZip == "" {
+		return filenames, errors.New("failed to find zip file " + agentZip)
+	}
+
+	lg.event("Got the agentZip. Agent is: " + agentZip)
+
+	r, err := zip.OpenReader(agentZip)
+	if err != nil {
+		return filenames, errors.New("failed to open zip: " + agentZip)
 	}
 	defer r.Close()
 
@@ -170,33 +195,33 @@ func unzip(source string, dest string) ([]string, error) {
 		} else {
 			// make file
 			if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
-				return filenames, errors.Wrap(err, "failed to create directory")
+				return filenames, errors.Wrap(err, "failed to create directory: "+fpath)
 			}
 			outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if err != nil {
-				return filenames, errors.Wrap(err, "failed to open directory at current path")
+				return filenames, errors.Wrap(err, "failed to open directory at current path: "+fpath)
 			}
 			_, err = io.Copy(outFile, rc)
 			// close the file without defer to close before next iteration of loop
 			outFile.Close()
 			if err != nil {
-				return filenames, errors.Wrap(err, "failed to close file")
+				return filenames, errors.Wrap(err, "failed to close file: "+outFile.Name())
 			}
 		}
 	}
-	lg.message("unzip successful")
+	lg.event("unzipAgent successful")
 	return filenames, nil
 }
 
-func getStdPipesAndTelemetry(logDir string, runErr error) {
+func getStdPipesAndTelemetry(lg ExtensionLogger, logDir string, runErr error) {
 	stdoutF, stderrF := logPaths(logDir)
 	stdoutTail, err := tailFile(stdoutF, maxTailLen)
 	if err != nil {
-		lg.messageAndError("error tailing stdout logs", err)
+		lg.eventError("error tailing stdout logs", err)
 	}
 	stderrTail, err := tailFile(stderrF, maxTailLen)
 	if err != nil {
-		lg.messageAndError("error tailing stderr logs", err)
+		lg.eventError("error tailing stderr logs", err)
 	}
 
 	minStdout := min(len(stdoutTail), maxTelemetryTailLen)

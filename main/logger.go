@@ -4,58 +4,62 @@ import (
 	"os"
 
 	"github.com/go-kit/kit/log"
+	"io"
+	golog "log"
+	"path"
 )
 
-const (
-	// Logging and telemetry operations
-	telemetryScenario = "scenario"
-
-	logOutput    = "output"
-	logMessage   = "message"
-	logEvent     = "event"
-	logError     = "error"
-	logAgentName = "agentName"
-	logVersion   = "version"
-	logPath      = "path"
-)
-
-type LinuxLogger struct {
-	logger log.Logger
+type ExtensionLogger struct {
+	logger      log.Logger
+	logFilePath string
 }
 
-// create a new LinuxLogger
-func newLogger() LinuxLogger {
-	nop := log.With(log.With(log.NewSyncLogger(log.NewLogfmtLogger(
-		os.Stdout)), "time", log.DefaultTimestamp), "version", VersionString())
-	lg := LinuxLogger{nop}
+// create a new ExtensionLogger
+func newLogger(logDir string) ExtensionLogger {
+	if err := os.MkdirAll(logPath, 0644); err != nil {
+		golog.Printf("ERROR: Cannot create log folder %s: %v \r\n", logDir, err)
+	}
+
+	extensionLogPath := path.Join(logPath, ExtensionHandlerLogFileName)
+	golog.Printf("Logging in file %s: in directory %s: .\r\n", ExtensionHandlerLogFileName, logPath)
+
+	fileHandle, err := os.OpenFile(extensionLogPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+
+	if err != nil {
+		golog.Fatalf("ERROR: Cannot open log file: %v \r\n", err)
+	}
+
+	fileLogger := log.With(
+		log.With(
+			log.NewSyncLogger(
+				log.NewLogfmtLogger(
+					io.MultiWriter(
+						os.Stdout,
+						os.Stderr,
+						fileHandle))),
+			"time", log.DefaultTimestamp),
+		"version", VersionString())
+	lg := ExtensionLogger{fileLogger, extensionLogPath}
 
 	return lg
 }
 
-func (lg LinuxLogger) with(key string, value string) {
+func (lg ExtensionLogger) with(key string, value string) {
 	lg.logger = log.With(lg.logger, key, value)
 }
 
-func (lg LinuxLogger) output(output string) {
+func (lg ExtensionLogger) output(output string) {
 	lg.logger.Log(logOutput, output)
 }
 
-func (lg LinuxLogger) event(event string, message string) {
-	if message != "" {
-		lg.logger.Log(logEvent, event, logMessage, message)
-	} else {
-		lg.logger.Log(logEvent, event)
-	}
+func (lg ExtensionLogger) event(event string) {
+	lg.logger.Log(logEvent, event)
 }
 
-func (lg LinuxLogger) message(message string) {
-	lg.logger.Log(logMessage, message)
+func (lg ExtensionLogger) eventError(event string, error error) {
+	lg.logger.Log(logEvent, event, logError, error)
 }
 
-func (lg LinuxLogger) messageAndError(message string, error error) {
-	lg.logger.Log(logMessage, message, logError, error)
-}
-
-func (lg LinuxLogger) customLog(keyvals ...interface{}) {
+func (lg ExtensionLogger) customLog(keyvals ...interface{}) {
 	lg.logger.Log(keyvals)
 }
