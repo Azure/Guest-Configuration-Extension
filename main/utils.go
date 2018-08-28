@@ -111,6 +111,7 @@ func getOldAgentPath(lg ExtensionLogger) (string, error) {
 
 	// get old agent path
 	oldAgent := filepath.Join(dir, extension, UnzipAgentDir, AgentName)
+	lg.event("Old agent path: " + oldAgent)
 
 	return oldAgent, nil
 }
@@ -137,11 +138,11 @@ func checkAndSaveSeqNum(lg ExtensionLogger, seqNum int, mrseqPath string) (shoul
 }
 
 // runCmd runs the command (extracted from cfg) in the given dir (assumed to exist).
-func runCmd(lg ExtensionLogger, cmd string, dir string, cfg handlerSettings) (err error) {
+func runCmd(lg ExtensionLogger, cmd string, dir string, cfg handlerSettings) (code int, err error) {
 	lg.customLog(logEvent, "executing command", logOutput, dir)
 
 	begin := time.Now()
-	err = ExecCmdInDir(lg, cmd, dir)
+	code, err = ExecCmdInDir(lg, cmd, dir)
 	elapsed := time.Now().Sub(begin)
 	isSuccess := err == nil
 
@@ -149,10 +150,10 @@ func runCmd(lg ExtensionLogger, cmd string, dir string, cfg handlerSettings) (er
 
 	if err != nil {
 		lg.customLog(logEvent, "failed to execute command", logError, err, logOutput, dir)
-		return errors.Wrap(err, "failed to execute command")
+		return code, errors.Wrap(err, "failed to execute command")
 	}
 	lg.customLog(logEvent, "executed command", logOutput, dir)
-	return nil
+	return code, nil
 }
 
 // decompresses a zip archive, moving all files and folders within the zip file
@@ -235,6 +236,8 @@ func getStdPipesAndTelemetry(lg ExtensionLogger, logDir string, runErr error) {
 	msgTelemetry := fmt.Sprintf("\n[stdout]\n%s\n[stderr]\n%s",
 		string(stdoutTail[len(stdoutTail)-minStdout:]),
 		string(stderrTail[len(stderrTail)-minStderr:]))
+
+	lg.event("Telemetry message: " + msgTelemetry)
 
 	isSuccess := runErr == nil
 	telemetry("output", msgTelemetry, isSuccess, 0)

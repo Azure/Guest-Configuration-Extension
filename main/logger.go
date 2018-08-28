@@ -42,6 +42,8 @@ func newLogger(logDir string) ExtensionLogger {
 		"version", VersionString())
 	lg := ExtensionLogger{fileLogger, extensionLogPath}
 
+	lg.event("ExtensionLogPath: " + extensionLogPath)
+
 	return lg
 }
 

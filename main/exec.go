@@ -45,21 +45,21 @@ func Exec(lg ExtensionLogger, cmd, workdir string, stdout, stderr io.WriteCloser
 //
 // Ideally, we execute commands only once per sequence number in custom-script-extension,
 // and save their output under /var/lib/waagent/<dir>/download/<seqnum>/*.
-func ExecCmdInDir(lg ExtensionLogger, cmd, workdir string) error {
+func ExecCmdInDir(lg ExtensionLogger, cmd, workdir string) (int, error) {
 	outFn, errFn := logPaths(workdir)
 
 	outF, err := os.OpenFile(outFn, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
-		return errors.Wrapf(err, "failed to open stdout file")
+		return 0, errors.Wrapf(err, "failed to open stdout file")
 	}
 	errF, err := os.OpenFile(errFn, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
-		return errors.Wrapf(err, "failed to open stderr file")
+		return 0, errors.Wrapf(err, "failed to open stderr file")
 	}
 
-	_, err = Exec(lg, cmd, workdir, outF, errF)
+	code, execErr := Exec(lg, cmd, workdir, outF, errF)
 
-	return err
+	return code, execErr
 }
 
 // logPaths returns stdout and stderr file paths for the specified output

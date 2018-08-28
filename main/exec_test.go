@@ -71,7 +71,7 @@ func TestExecCmdInDir(t *testing.T) {
 	require.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	err = ExecCmdInDir(noopLogger, "/bin/echo 'Hello world'", dir)
+	_, err = ExecCmdInDir(noopLogger, "/bin/echo 'Hello world'", dir)
 	require.Nil(t, err)
 	require.True(t, fileExists(t, filepath.Join(dir, "stdout")), "stdout file should be created")
 	require.True(t, fileExists(t, filepath.Join(dir, "stderr")), "stderr file should be created")
@@ -86,7 +86,7 @@ func TestExecCmdInDir(t *testing.T) {
 }
 
 func TestExecCmdInDir_cantOpenError(t *testing.T) {
-	err := ExecCmdInDir(noopLogger, "/bin/echo 'Hello world'", "/non-existing-dir")
+	_, err := ExecCmdInDir(noopLogger, "/bin/echo 'Hello world'", "/non-existing-dir")
 	require.Contains(t, err.Error(), "failed to open stdout file")
 }
 
@@ -95,8 +95,10 @@ func TestExecCmdInDir_truncates(t *testing.T) {
 	require.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	require.Nil(t, ExecCmdInDir(noopLogger, "/bin/echo '1:out'; /bin/echo '1:err'>&2", dir))
-	require.Nil(t, ExecCmdInDir(noopLogger, "/bin/echo '2:out'; /bin/echo '2:err'>&2", dir))
+	_, err = ExecCmdInDir(noopLogger, "/bin/echo '1:out'; /bin/echo '1:err'>&2", dir)
+	require.Nil(t, err)
+	_, err = ExecCmdInDir(noopLogger, "/bin/echo '2:out'; /bin/echo '2:err'>&2", dir)
+	require.Nil(t, err)
 
 	b, err := ioutil.ReadFile(filepath.Join(dir, "stdout"))
 	require.Nil(t, err)

@@ -79,7 +79,7 @@ func enable(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int)
 		// directory exists, run enable.sh for agent health check
 		lg.event("agent health check")
 
-		runErr = runCmd(lg, "bash ./enable.sh", agentDirectory, cfg)
+		_, runErr := runCmd(lg, "bash ./enable.sh", agentDirectory, cfg)
 		if runErr != nil {
 			lg.eventError("agent health check failed", runErr)
 			os.Exit(agentHealthCheckFailedCode)
@@ -95,14 +95,14 @@ func enable(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int)
 	}
 	// run install.sh and enable.sh
 	lg.event("installing agent")
-	runErr = runCmd(lg, "bash ./install.sh", agentDirectory, cfg)
+	_, runErr = runCmd(lg, "bash ./install.sh", agentDirectory, cfg)
 	if runErr != nil {
 		lg.eventError("agent installation failed", runErr)
 		telemetry(TelemetryScenario, "agent installation failed: "+runErr.Error(), false, 0)
 	} else {
 		lg.customLog(logEvent, "agent installation succeeded", logEvent, "enabling agent")
 		telemetry(TelemetryScenario, "agent installation succeeded", true, 0)
-		runErr = runCmd(lg, "bash ./enable.sh", agentDirectory, cfg)
+		_, runErr = runCmd(lg, "bash ./enable.sh", agentDirectory, cfg)
 		if runErr != nil {
 			lg.eventError("enable agent failed", runErr)
 			telemetry(TelemetryScenario, "agent enable failed: "+runErr.Error(), false, 0)
@@ -131,6 +131,7 @@ func update(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int)
 		lg.eventError("failed to get old agent path", err)
 		return errors.Wrap(err, "failed to get old agent path")
 	}
+	lg.event("Got the oldAgent path: " + oldAgent)
 
 	// parse and log the new agent version
 	//_, err = parseAndLogAgentVersion(lg, AgentZipDir)
@@ -149,10 +150,12 @@ func update(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int)
 
 	// run new update.sh to update the agent
 	lg.event("updating agent")
-	runErr := runCmd(lg, "bash ./update.sh "+oldAgent, agentDirectory, cfg)
+	_, runErr := runCmd(lg, "bash ./update.sh "+oldAgent, agentDirectory, cfg)
 	if runErr != nil {
 		lg.eventError("agent update failed", runErr)
 		telemetry(TelemetryScenario, "agent update failed: "+runErr.Error(), false, 0)
+		// We do not propagate errors in the update case currently. We do want to surface this though.
+		runErr = nil
 	} else {
 		lg.event("agent update succeeded")
 		telemetry(TelemetryScenario, "agent update succeeded", true, 0)
@@ -174,7 +177,7 @@ func disable(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int
 	// run disable.sh to disable the agent
 	lg.event("disabling agent")
 	unzipDir, agentDirectory := getAgentPaths()
-	runErr := runCmd(lg, "bash ./disable.sh", agentDirectory, cfg)
+	_, runErr := runCmd(lg, "bash ./disable.sh", agentDirectory, cfg)
 	if runErr != nil {
 		lg.eventError("agent disable failed", runErr)
 		telemetry(TelemetryScenario, "agent disable failed: "+runErr.Error(), false, 0)
@@ -199,7 +202,7 @@ func uninstall(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum i
 	// run uninstall.sh to uninstall the agent
 	lg.event("uninstalling agent")
 	unzipDir, agentDirectory := getAgentPaths()
-	runErr := runCmd(lg, "bash ./uninstall.sh", agentDirectory, cfg)
+	_, runErr := runCmd(lg, "bash ./uninstall.sh", agentDirectory, cfg)
 	if runErr != nil {
 		lg.eventError("agent uninstall failed", runErr)
 		telemetry(TelemetryScenario, "agent uninstall failed: "+runErr.Error(), false, 0)

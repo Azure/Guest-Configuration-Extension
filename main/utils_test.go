@@ -85,7 +85,8 @@ func Test_runCmd_fail(t *testing.T) {
 	require.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	require.NotNil(t, runCmd(noopLogger, "wrongCmd", dir, handlerSettings{}))
+	_, err = runCmd(noopLogger, "wrongCmd", dir, handlerSettings{})
+	require.NotNil(t, err)
 }
 
 func Test_runCmd_success(t *testing.T) {
@@ -93,17 +94,16 @@ func Test_runCmd_success(t *testing.T) {
 	require.Nil(t, err)
 	defer os.RemoveAll(dir)
 
-	require.Nil(t, runCmd(noopLogger, "date", dir, handlerSettings{
-		publicSettings: publicSettings{CommandToExecute: "date"},
-	}), "command should run successfully")
+	_, err = runCmd(noopLogger, "date", dir, handlerSettings{publicSettings: publicSettings{CommandToExecute: "date"}})
+	require.Nil(t, err, "command should run successfully")
 
 	// check stdout stderr files
 	_, err = os.Stat(filepath.Join(dir, "stdout"))
 	require.Nil(t, err, "stdout should exist")
 	_, err = os.Stat(filepath.Join(dir, "stderr"))
 	require.Nil(t, err, "stderr should exist")
-
-	require.Nil(t, runCmd(noopLogger, "", dir, handlerSettings{}))
+	_, err = runCmd(noopLogger, "", dir, handlerSettings{})
+	require.Nil(t, err)
 
 	// check stdout stderr files
 	_, err = os.Stat(filepath.Join(dir, "stdout"))
@@ -125,7 +125,7 @@ func Test_runCmd_withTestFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = runCmd(noopLogger, "bash ./testing.sh", dir, handlerSettings{})
+	_, err = runCmd(noopLogger, "bash ./testing.sh", dir, handlerSettings{})
 
 	require.Nil(t, err)
 }

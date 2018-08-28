@@ -54,7 +54,7 @@ func main() {
 			os.Exit(cmd.failExitCode)
 		}
 	}
-	lg.event("seqNum" + strconv.Itoa(seqNum))
+	lg.event("seqNum: " + strconv.Itoa(seqNum))
 
 	// check sub-command preconditions, if any, before executing
 	lg.event("start operation")
