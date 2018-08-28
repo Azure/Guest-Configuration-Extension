@@ -13,7 +13,7 @@ bundle: clean binary
 
 build: binary
 
-binary: clean sanity
+binary: clean
 	if [ -z "$$GOPATH" ]; then \
 		echo "GOPATH is not set"; \
 		exit 1; \
