@@ -2,8 +2,6 @@
 
 # Guest Configuration Extension for Linux
 
-This documentation is current for version 0.8.0 and above.
-
 The Guest Configuration Extension for Linux configures the Guest Configuration 
 Agent on VMs. Together, they allow a customer to run In-Guest Policy on their 
 VMs, which gives the customer the ability to monitor their system and security 
@@ -15,12 +13,12 @@ found on Chef InSpec.
 To deploy the Guest Configuration Extension for Linux onto your machine, run:
 
     $ az vm extension set --resource-group <resource-group> --vm-name <vm-name> \
-        --name ConfigurationForLinux --publisher Microsoft.GuestConfiguration.Edp --version 0.8.0 
+        --name ConfigurationForLinux --publisher Microsoft.GuestConfiguration --version 0.8.0 
 
 ## 2. Commands Guide
 
 The Guest Configuration Extension for Linux supports five commands -- install, enable,
-update, disable, and uninstall. To run any of these commands, go to the path: `/var/lib/waagent/Microsoft.GuestConfiguration.Edp.ConfigurationForLinux-<version>/bin`, 
+update, disable, and uninstall. To run any of these commands, go to the path: `/var/lib/waagent/Microsoft.GuestConfiguration.ConfigurationForLinux-<version>/bin`, 
 and run:
 
     $ guest-configuration-shim <command name>
@@ -46,11 +44,11 @@ can update the service endpoint.
 
 ## 3. Troubleshooting
 
-The agent is downloaded to a path like: `/var/lib/waagent/Microsoft.GuestConfiguration.Edp.ConfigurationForLinux-<version>/GCAgent/DesiredStateConfiguration`
+The agent is downloaded to a path like: `/var/lib/waagent/Microsoft.GuestConfiguration.ConfigurationForLinux-<version>/GCAgent/DesiredStateConfiguration`
 and the Agent output is saved to `stdout` and `stderr` files in this directory. Please read
 these files to find out output from the agent.
 
-You can find the logs for the extension at a path like: `/var/log/azure/Microsoft.GuestConfiguration.Edp.ConfigurationForLinux`.
+You can find the logs for the extension at a path like: `/var/log/azure/Microsoft.GuestConfiguration.ConfigurationForLinux`.
 
 Please open an issue on this GitHub repository if you encounter problems that
 you could not debug with these log files.
