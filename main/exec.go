@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
+	"strconv"
 )
 
 // Exec runs the given cmd in /bin/sh, saves its stdout/stderr streams to
@@ -31,8 +32,8 @@ func Exec(lg ExtensionLogger, cmd, workdir string, stdout, stderr io.WriteCloser
 	if ok {
 		if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 			code := status.ExitStatus()
-			telemetry(TelemetryScenario, "agent exit code: "+string(code), ok, 0)
-			lg.event("agent exited with: " + string(code))
+			telemetry(TelemetryScenario, "command exit code: "+strconv.Itoa(code), ok, 0)
+			lg.event("command exited with: " + strconv.Itoa(code))
 			return code, fmt.Errorf("command terminated with exit status=%d", code)
 		}
 	}

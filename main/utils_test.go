@@ -158,6 +158,18 @@ func Test_unzip_pass(t *testing.T) {
 	Test_cleanUpTests(t)
 }
 
+func Test_setPermissions(t *testing.T) {
+	dir := filepath.Join(DataDir, UnzipAgentDir)
+	fileNames, err := unzipAgent(noopLogger, "../"+AgentZipDir, AgentName, dir)
+	require.Nil(t, err)
+	require.NotEmpty(t, fileNames)
+
+	err = setPermissions()
+	require.Nil(t, err)
+
+	Test_cleanUpTests(t)
+}
+
 func Test_cleanUpTests(t *testing.T) {
 	// delete the testing directory
 	// if it does not exist, this will do nothing

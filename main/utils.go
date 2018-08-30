@@ -30,7 +30,7 @@ func getAgentPaths() (unzipDirectory string, agentDirectory string) {
 }
 
 func parseAndLogAgentVersion(lg ExtensionLogger, agentName string) (agentVersion string, err error) {
-	r, _ := regexp.Compile("^([./a-zA-Z0-9]*)_([0-9.]*)?[.](.*)$")
+	r, _ := regexp.Compile(AgentVersionRegex)
 	matches := r.FindStringSubmatch(agentName)
 	if len(matches) != 4 {
 		return "", errors.New("incorrect naming format for agent")
@@ -216,8 +216,35 @@ func unzipAgent(lg ExtensionLogger, source string, prefix string, dest string) (
 			}
 		}
 	}
+
 	lg.event("unzipAgent successful")
 	return filenames, nil
+}
+
+func setPermissions() error {
+	_, agentDir := getAgentPaths()
+
+	// get the list of files in the directory
+	files, err := ioutil.ReadDir(agentDir)
+	if err != nil {
+		lg.eventError("could not read files in agent directory", err)
+		return errors.Wrap(err, "could not read files in agent directory")
+	}
+	// set the permissions for each of the script files
+	for _, f := range files {
+		r, _ := regexp.Compile(".*\\.sh")
+		matches := r.FindStringSubmatch(f.Name())
+		if len(matches) > 0 {
+			name := filepath.Join(agentDir, f.Name())
+			err = os.Chmod(name, 0744)
+			if err != nil {
+				lg.eventError("could not set permissions for file: "+f.Name(), err)
+				return errors.Wrap(err, "could not set permissions for file: "+f.Name())
+			}
+		}
+	}
+
+	return nil
 }
 
 func getStdPipesAndTelemetry(lg ExtensionLogger, logDir string, runErr error) {
