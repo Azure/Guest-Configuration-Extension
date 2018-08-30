@@ -52,6 +52,9 @@ const (
 	// ExtensionDirRegex Regex for finding only Extension directories.
 	ExtensionDirRegex = "Microsoft.GuestConfiguration.?(Edp)?.ConfigurationForLinux-([0-9.]*)"
 
-	// GCExtensionVersionRegex Version of the extension
+	// GCExtensionVersionRegex returns the version of the extension
 	GCExtensionVersionRegex = "^([./a-zA-Z]*)-([0-9.]*)?$"
+
+	// AgentVersionRegex helps return the version of the extension
+	AgentVersionRegex = "^([./a-zA-Z0-9]*)_([0-9.]*)?[.](.*)$"
 )
