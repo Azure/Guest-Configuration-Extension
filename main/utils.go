@@ -236,7 +236,7 @@ func setPermissions() error {
 		matches := r.FindStringSubmatch(f.Name())
 		if len(matches) > 0 {
 			name := filepath.Join(agentDir, f.Name())
-			err = os.Chmod(name, 0744)
+			err = os.Chmod(name, 0700)
 			if err != nil {
 				lg.eventError("could not set permissions for file: "+f.Name(), err)
 				return errors.Wrap(err, "could not set permissions for file: "+f.Name())
