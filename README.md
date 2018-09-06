@@ -44,7 +44,7 @@ can update the service endpoint.
 
 ## 3. Troubleshooting
 
-The agent is downloaded to a path like: `/var/lib/waagent/Microsoft.GuestConfiguration.ConfigurationForLinux-<version>/GCAgent/DesiredStateConfiguration`
+The agent is downloaded to a path like: `/var/lib/waagent/Microsoft.GuestConfiguration.ConfigurationForLinux-<version>/GCAgent/DSC`
 and the Agent output is saved to `stdout` and `stderr` files in this directory. Please read
 these files to find out output from the agent.
 

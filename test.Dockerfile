@@ -33,7 +33,7 @@ RUN ln -s /var/lib/waagent/fake-waagent /sbin/fake-waagent && \
 COPY misc/HandlerManifest.json ./Extension/
 COPY misc/guest-configuration-shim ./Extension/bin/
 COPY bin/guest-configuration-extension ./Extension/bin/
-COPY integration-test/testdata/DesiredStateConfiguration-test.zip ./agent/DesiredStateConfiguration_1.0.0.zip
+COPY integration-test/testdata/DSC-test.zip ./agent/DSC_1.0.0.zip
 
 RUN chown root ./Extension/bin/
 RUN chmod 777 ./Extension/bin/*
