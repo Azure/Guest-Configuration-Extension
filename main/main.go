@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -56,6 +57,20 @@ func main() {
 	}
 	lg.event("seqNum: " + strconv.Itoa(seqNum))
 
+	if cmd.name == "install" {
+		exists := true
+		if _, err := os.Stat(UpdateFailFileName); os.IsNotExist(err) {
+			exists = false
+		}
+		if exists {
+			updateError := errors.New("detected an update failure from install")
+			lg.eventError("update failed", updateError)
+			telemetry(TelemetryScenario, "detected an update failure from install", false, 0)
+			reportStatus(lg, hEnv, seqNum, status.StatusError, cmd, updateError.Error())
+			os.Exit(updateCode)
+		}
+	}
+
 	// check sub-command preconditions, if any, before executing
 	lg.event("start operation")
 	if cmd.pre != nil {
@@ -73,9 +88,17 @@ func main() {
 
 	if cmdErr := cmd.f(lg, hEnv, seqNum); cmdErr != nil {
 		lg.eventError("command failed", cmdErr)
-		reportStatus(lg, hEnv, seqNum, status.StatusError, cmd, cmdErr.Error())
 		telemetry(TelemetryScenario, cmd.name+" failed: "+cmdErr.Error(), false, 0)
-		os.Exit(cmd.failExitCode)
+		if cmd.name == "update" {
+			// never fail on update to avoid a never-ending update loop bug in the Guest Agent
+			// instead create a file to signal to the next install that we failed
+			os.OpenFile(UpdateFailFileName, os.O_RDONLY|os.O_CREATE, 0600)
+			reportStatus(lg, hEnv, seqNum, status.StatusSuccess, cmd, "")
+			os.Exit(successCode)
+		} else {
+			reportStatus(lg, hEnv, seqNum, status.StatusError, cmd, cmdErr.Error())
+			os.Exit(cmd.failExitCode)
+		}
 	}
 	reportStatus(lg, hEnv, seqNum, status.StatusSuccess, cmd, "")
 

@@ -57,4 +57,7 @@ const (
 
 	// AgentVersionRegex helps return the version of the extension
 	AgentVersionRegex = "^([./a-zA-Z0-9]*)_([0-9.]*)?[.](.*)$"
+
+	// If we return failure from update, the Guest Agent goes into an infinite loop. Fixed in the next GA deployment.
+	UpdateFailFileName = "./update_failed"
 )
