@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -35,7 +34,7 @@ func main() {
 	// parse extension environment
 	hEnv, handlerErr := vmextension.GetHandlerEnv()
 	if handlerErr != nil {
-		lg.eventError("failed to parse handlerEnv", handlerErr)
+		lg.eventError("Failed to parse handlerEnv file.", handlerErr)
 		os.Exit(failureCode)
 	}
 
@@ -57,21 +56,6 @@ func main() {
 	}
 	lg.event("seqNum: " + strconv.Itoa(seqNum))
 
-	if cmd.name == "install" {
-		exists := true
-		if _, err := os.Stat(UpdateFailFileName); os.IsNotExist(err) {
-			exists = false
-		}
-		if exists {
-			updateError := errors.New("detected an update failure from install")
-			lg.eventError("update failed", updateError)
-			telemetry(TelemetryScenario, "detected an update failure from install", false, 0)
-			reportStatus(lg, hEnv, seqNum, status.StatusError, cmd, updateError.Error())
-			os.Remove(UpdateFailFileName)
-			os.Exit(updateCode)
-		}
-	}
-
 	// check sub-command preconditions, if any, before executing
 	lg.event("start operation")
 	if cmd.pre != nil {
@@ -84,28 +68,25 @@ func main() {
 	}
 
 	// execute the command
-	lg.event("reporting status")
+	lg.event("Reporting transitioning status...")
 	reportStatus(lg, hEnv, seqNum, status.StatusTransitioning, cmd, "Transitioning")
 
 	if cmdErr := cmd.f(lg, hEnv, seqNum); cmdErr != nil {
-		lg.eventError("command failed", cmdErr)
-		telemetry(TelemetryScenario, cmd.name+" failed: "+cmdErr.Error(), false, 0)
-		if cmd.name == "update" {
-			// never fail on update to avoid a never-ending update loop bug in the Guest Agent
-			// instead create a file to signal to the next install that we failed
-			os.OpenFile(UpdateFailFileName, os.O_RDONLY|os.O_CREATE, 0600)
-			reportStatus(lg, hEnv, seqNum, status.StatusSuccess, cmd, "")
-			os.Exit(successCode)
-		} else {
+		message := "Operation '" + cmd.name + "' failed."
+		lg.eventError(message, cmdErr)
+		telemetry(TelemetryScenario, message+" Error: '"+cmdErr.Error()+"'.", false, 0)
+		// Never fail on disable due to a current bug in the Guest Agent
+		if cmd.name != "disable" {
 			reportStatus(lg, hEnv, seqNum, status.StatusError, cmd, cmdErr.Error())
 			os.Exit(cmd.failExitCode)
 		}
+	} else {
+		message := "Operation '" + cmd.name + "' succeeded."
+		lg.event(message)
+		telemetry(TelemetryScenario, message, false, 0)
 	}
+
 	reportStatus(lg, hEnv, seqNum, status.StatusSuccess, cmd, "")
-
-	telemetry(TelemetryScenario, cmd.name+" succeeded", false, 0)
-	lg.event(cmd.name + " end")
-
 	os.Exit(successCode)
 }
 
