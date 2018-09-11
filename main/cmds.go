@@ -127,55 +127,10 @@ func enable(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int)
 }
 
 func update(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int) error {
-	// parse the extension handler settings
-	cfg, err := parseAndValidateSettings(hEnv.HandlerEnvironment.ConfigFolder)
-	if err != nil {
-		return errors.Wrap(err, "failed to get configuration")
-	}
-
-	// get old agent path
-	oldAgent, err := getOldAgentPath(lg)
-	if err != nil {
-		lg.eventError("failed to get old agent path", err)
-		return errors.Wrap(err, "failed to get old agent path")
-	}
-	lg.event("Got the oldAgent path: " + oldAgent)
-
-	// parse and log the new agent version
-	//_, err = parseAndLogAgentVersion(lg, AgentZipDir)
-	//if err != nil {
-	//	lg.customLog(logEvent, "failed to parse version string", logError, err, logAgentName, AgentZipDir)
-	//	return errors.Wrap(err, "failed to parse version string")
-	//}
-
-	// unzipAgent new agent
-	unzipDir, agentDirectory := getAgentPaths()
-	_, err = unzipAgent(lg, AgentZipDir, AgentName, unzipDir)
-	if err != nil {
-		lg.eventError("failed to unzipAgent agent dir", err)
-		return errors.Wrap(err, "failed to unzipAgent agent")
-	}
-	// set permissions for the .sh files
-	err = setPermissions()
-	if err != nil {
-		lg.eventError("failed to update the permissions for the scripts", err)
-		telemetry(TelemetryScenario, err.Error(), false, 0)
-		return nil
-	}
-
-	// run new update.sh to update the agent
-	lg.event("updating agent")
-	_, runErr := runCmd(lg, "bash ./update.sh "+oldAgent, agentDirectory, cfg)
-	if runErr != nil {
-		lg.eventError("agent update failed", runErr)
-		telemetry(TelemetryScenario, "agent update failed: "+runErr.Error(), false, 0)
-	} else {
-		lg.event("agent update succeeded")
-		telemetry(TelemetryScenario, "agent update succeeded", true, 0)
-	}
-
+	// update does not need to do any migration at the moment
 	// collect the logs if available and send telemetry updates
-	getStdPipesAndTelemetry(lg, unzipDir, runErr)
+	unzipDir, _ := getAgentPaths()
+	getStdPipesAndTelemetry(lg, unzipDir, nil)
 
 	return nil
 }
