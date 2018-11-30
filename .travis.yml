@@ -2,7 +2,7 @@ sudo: true
 services:
  - docker
 language: go
-go: go1.7
+go: go1.11
 install:
   - sudo add-apt-repository ppa:duggan/bats --yes
   - sudo apt-get update -qq
@@ -10,7 +10,7 @@ install:
   - curl -sL https://deb.nodesource.com/setup_6.x | sudo bash -
   - sudo apt-get install -qqy nodejs
   - sudo npm install -g npm
-  - go get -u golang.org/x/lint/golint
+  - go get -u -v golang.org/x/lint/golint
   - go get -u github.com/ahmetalpbalkan/govvv
   - go get -u github.com/tools/godep
   - godep restore
