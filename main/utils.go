@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"encoding/json"
 )
 
 func min(a int, b int) int {
@@ -271,6 +272,10 @@ func getStdPipesAndTelemetry(lg ExtensionLogger, logDir string, runErr error) {
 }
 
 func updateAssignment(assignmentName string, contentHash string) {
+    if( assignmentName == "" || contentHash == "" ) {
+        return
+    }
+
     dscConfigFilePath := "/var/lib/GuestConfig/dsc/dsc.config"
 
     configJsonFile, err := os.Open(dscConfigFilePath)
