@@ -269,3 +269,61 @@ func getStdPipesAndTelemetry(lg ExtensionLogger, logDir string, runErr error) {
 	isSuccess := runErr == nil
 	telemetry("output", msgTelemetry, isSuccess, 0)
 }
+
+func updateAssignment(assignmentName string, contentHash string) {
+    dscConfigFilePath := "/var/lib/GuestConfig/dsc/dsc.config"
+
+    configJsonFile, err := os.Open(dscConfigFilePath)
+    if err != nil {
+        dscConfigFolderPath := "/var/lib/GuestConfig/dsc"
+        os.MkdirAll(dscConfigFolderPath, os.ModePerm)
+
+        // New dsc.config file
+        firstAssignmentString := "{\"Assignments\": [ { \"name\": \"" + assignmentName + "\", \"contentHash\": \"" + contentHash + "\" }]}"
+        var firstAssignment map[string]interface{}
+        json.Unmarshal([]byte(firstAssignmentString ), &firstAssignment)
+        firstAssignmentJson, _ := json.Marshal(firstAssignment)
+        err = ioutil.WriteFile(dscConfigFilePath, firstAssignmentJson, 0644)
+        if err != nil {
+            fmt.Println(err)
+        }
+        return
+    }
+    
+    // defer the closing of config file so that we can parse it later on
+    defer configJsonFile.Close()
+
+    byteValue, _ := ioutil.ReadAll(configJsonFile)
+
+    var dscConfig map[string]interface{}
+    json.Unmarshal([]byte(byteValue), &dscConfig)
+
+    newEntry := map[string]interface{}{"name" : assignmentName, "contentHash" : contentHash}
+    
+    // Assignments exists in config file
+    if _, ok := dscConfig["Assignments"]; ok {
+        assignments := dscConfig["Assignments"].([]interface{})
+        
+        var assignmentExists bool = false
+        for _, assignment := range assignments {
+            assignmentMap := assignment.(map[string]interface{})
+            if assignmentMap["name"] == assignmentName {
+                assignmentExists = true
+                assignmentMap["contentHash"] = contentHash
+            }
+        }
+        
+        if assignmentExists == false {
+            dscConfig["Assignments"] = append(assignments, newEntry)
+        }
+
+        dscConfigJson, _ := json.Marshal(dscConfig)
+        err = ioutil.WriteFile(dscConfigFilePath, dscConfigJson, 0644)
+    } else {
+        // Assignments doesnt exist in config file
+        var assignments []interface{}
+        dscConfig["Assignments"] = append(assignments, newEntry)
+        dscConfigJson, _ := json.Marshal(dscConfig)
+        err = ioutil.WriteFile(dscConfigFilePath, dscConfigJson, 0644)
+    }
+}

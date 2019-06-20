@@ -72,6 +72,9 @@ func enable(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int)
 	//	return errors.Wrap(err, "failed to parse version string")
 	//}
 
+	// Add Assignment name and content hash in dsc.config file.
+	updateAssignment(cfg.publicSettings.AssignmentName, cfg.publicSettings.ContentHash)
+
 	// check to see if agent directory exists
 	unzipDir, agentDirectory := getAgentPaths()
 	var runErr error
