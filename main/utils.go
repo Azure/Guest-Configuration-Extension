@@ -271,9 +271,9 @@ func getStdPipesAndTelemetry(lg ExtensionLogger, logDir string, runErr error) {
 	telemetry("output", msgTelemetry, isSuccess, 0)
 }
 
-func updateAssignment(assignmentName string, contentHash string) {
+func updateAssignment(assignmentName string, contentHash string) error {
     if( assignmentName == "" || contentHash == "" ) {
-        return
+        return nil
     }
 
     dscConfigFilePath := "/var/lib/GuestConfig/dsc/dsc.config"
@@ -289,7 +289,7 @@ func updateAssignment(assignmentName string, contentHash string) {
         var firstAssignment map[string]interface{}
         json.Unmarshal([]byte(firstAssignmentString ), &firstAssignment)
         firstAssignmentJson, _ := json.Marshal(firstAssignment)
-        err = ioutil.WriteFile(dscConfigFilePath, firstAssignmentJson, fileMode)
+        err = ioutil.WriteFile(dscConfigFilePath, firstAssignmentJson, os.FileMode(fileMode))
         if err != nil {
             return errors.Wrap(err, "failed to open file")
         }
@@ -330,7 +330,7 @@ func updateAssignment(assignmentName string, contentHash string) {
     }
 
     dscConfigJson, _ := json.Marshal(dscConfig)
-    err = ioutil.WriteFile(dscConfigFilePath, dscConfigJson, fileMode)
+    err = ioutil.WriteFile(dscConfigFilePath, dscConfigJson, os.FileMode(fileMode))
     if err != nil {
         return errors.Wrap(err, "failed to write file")
     }
