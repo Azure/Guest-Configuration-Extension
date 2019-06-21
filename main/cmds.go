@@ -72,6 +72,13 @@ func enable(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int)
 	//	return errors.Wrap(err, "failed to parse version string")
 	//}
 
+	// Add Assignment name and content hash in dsc.config file.
+	err = updateAssignment(cfg.publicSettings.AssignmentName, cfg.publicSettings.ContentHash)
+	if err != nil {
+		lg.eventError("failed to update assignment parameters", err)
+		return errors.Wrap(err, "failed to update assignment parameters")
+	}
+
 	// check to see if agent directory exists
 	unzipDir, agentDirectory := getAgentPaths()
 	var runErr error
@@ -127,10 +134,26 @@ func enable(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int)
 }
 
 func update(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int) error {
-	// update does not need to do any migration at the moment
+	// parse the extension handler settings
+	cfg, err := parseAndValidateSettings(hEnv.HandlerEnvironment.ConfigFolder)
+	if err != nil {
+		return errors.Wrap(err, "failed to get configuration")
+	}
+
+	// run update.sh to disable the agent
+	lg.event("updating agent")
+	unzipDir, agentDirectory := getAgentPaths()
+	_, runErr := runCmd(lg, "bash ./update.sh", agentDirectory, cfg)
+	if runErr != nil {
+		lg.eventError("agent update failed", runErr)
+		telemetry(TelemetryScenario, "agent update failed: "+runErr.Error(), false, 0)
+	} else {
+		lg.event("agent update succeeded")
+		telemetry(TelemetryScenario, "agent update succeeded", true, 0)
+	}
+
 	// collect the logs if available and send telemetry updates
-	unzipDir, _ := getAgentPaths()
-	getStdPipesAndTelemetry(lg, unzipDir, nil)
+	getStdPipesAndTelemetry(lg, unzipDir, runErr)
 
 	return nil
 }

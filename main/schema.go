@@ -37,6 +37,14 @@ const (
     "timestamp": {
       "description": "An integer, intended to trigger re-execution of the script when changed",
       "type": "integer"
+    },
+    "assignmentName": {
+      "description": "Assignment name",
+      "type": "string"
+    },
+    "contentHash": {
+       "description": "Policy package SHA256 hash",
+       "type": "string"
     }
   },
   "additionalProperties": false
