@@ -276,14 +276,12 @@ func updateAssignment(assignmentName string, contentHash string) error {
 		return nil
 	}
 
-	dscConfigFilePath := "/var/lib/GuestConfig/dsc/dsc.config"
 	fileMode := int(0644)
+	_, agentDirectory := getAgentPaths()
+	dscConfigFilePath :=filepath.Join(agentDirectory, "dsc.config")
 
 	configJsonFile, err := os.Open(dscConfigFilePath)
 	if err != nil {
-		dscConfigFolderPath := "/var/lib/GuestConfig/dsc"
-		os.MkdirAll(dscConfigFolderPath, os.ModePerm)
-
 		// New dsc.config file
 		firstAssignmentString := "{\"Assignments\": [ { \"name\": \"" + assignmentName + "\", \"contentHash\": \"" + contentHash + "\" }]}"
 		var firstAssignment map[string]interface{}
