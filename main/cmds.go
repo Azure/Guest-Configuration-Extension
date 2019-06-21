@@ -73,7 +73,11 @@ func enable(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int)
 	//}
 
 	// Add Assignment name and content hash in dsc.config file.
-	updateAssignment(cfg.publicSettings.AssignmentName, cfg.publicSettings.ContentHash)
+	err = updateAssignment(cfg.publicSettings.AssignmentName, cfg.publicSettings.ContentHash)
+	if err != nil {
+		lg.eventError("failed to update assignment parameters", err)
+		return errors.Wrap(err, "failed to update assignment parameters")
+	}
 
 	// check to see if agent directory exists
 	unzipDir, agentDirectory := getAgentPaths()

@@ -277,6 +277,7 @@ func updateAssignment(assignmentName string, contentHash string) {
     }
 
     dscConfigFilePath := "/var/lib/GuestConfig/dsc/dsc.config"
+    fileMode := int(0644)
 
     configJsonFile, err := os.Open(dscConfigFilePath)
     if err != nil {
@@ -288,11 +289,11 @@ func updateAssignment(assignmentName string, contentHash string) {
         var firstAssignment map[string]interface{}
         json.Unmarshal([]byte(firstAssignmentString ), &firstAssignment)
         firstAssignmentJson, _ := json.Marshal(firstAssignment)
-        err = ioutil.WriteFile(dscConfigFilePath, firstAssignmentJson, 0644)
+        err = ioutil.WriteFile(dscConfigFilePath, firstAssignmentJson, fileMode)
         if err != nil {
-            fmt.Println(err)
+            return errors.Wrap(err, "failed to open file")
         }
-        return
+        return nil
     }
     
     // defer the closing of config file so that we can parse it later on
@@ -322,13 +323,17 @@ func updateAssignment(assignmentName string, contentHash string) {
             dscConfig["Assignments"] = append(assignments, newEntry)
         }
 
-        dscConfigJson, _ := json.Marshal(dscConfig)
-        err = ioutil.WriteFile(dscConfigFilePath, dscConfigJson, 0644)
     } else {
         // Assignments doesnt exist in config file
         var assignments []interface{}
         dscConfig["Assignments"] = append(assignments, newEntry)
-        dscConfigJson, _ := json.Marshal(dscConfig)
-        err = ioutil.WriteFile(dscConfigFilePath, dscConfigJson, 0644)
     }
+
+    dscConfigJson, _ := json.Marshal(dscConfig)
+    err = ioutil.WriteFile(dscConfigFilePath, dscConfigJson, fileMode)
+    if err != nil {
+        return errors.Wrap(err, "failed to write file")
+    }
+
+    return nil
 }
