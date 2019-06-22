@@ -278,7 +278,7 @@ func updateAssignment(assignmentName string, contentHash string) error {
 
 	fileMode := int(0644)
 	_, agentDirectory := getAgentPaths()
-	dscConfigFilePath :=filepath.Join(agentDirectory, "dsc.config")
+	dscConfigFilePath := filepath.Join(agentDirectory, "dsc.config")
 
 	configJsonFile, err := os.Open(dscConfigFilePath)
 	if err != nil {
