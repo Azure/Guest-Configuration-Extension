@@ -74,8 +74,6 @@ type publicSettings struct {
 	CommandToExecute string   `json:"commandToExecute"`
 	Script           string   `json:"script"`
 	FileURLs         []string `json:"fileUris"`
-	AssignmentName   string   `json:"assignmentName"`
-	ContentHash      string   `json:"contentHash"`
 }
 
 // protectedSettings is the type decoded and deserialized from protected
