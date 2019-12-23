@@ -6,7 +6,7 @@ BUNDLE=guest-configuration-extension.zip
 bundle: clean binary
 	@mkdir -p $(BUNDLEDIR)
 	zip ./$(BUNDLEDIR)/$(BUNDLE) ./$(BINDIR)/$(BIN)
-	zip ./$(BUNDLEDIR)/$(BUNDLE) ./agent/DSC_*.zip
+	zip ./$(BUNDLEDIR)/$(BUNDLE) ./agent/GC_*.zip
 	zip ./$(BUNDLEDIR)/$(BUNDLE) ./$(BINDIR)/guest-configuration-shim
 	zip -j ./$(BUNDLEDIR)/$(BUNDLE) ./misc/HandlerManifest.json
 	zip -j ./$(BUNDLEDIR)/$(BUNDLE) ./misc/manifest.xml

@@ -58,7 +58,7 @@ func Test_parseVersionString_fail(t *testing.T) {
 }
 
 func Test_parseVersionString_success(t *testing.T) {
-	_, err := parseAndLogAgentVersion(noopLogger, "agent/DSC_1.0.0.zip")
+	_, err := parseAndLogAgentVersion(noopLogger, "agent/GC_1.0.0.zip")
 	require.Nil(t, err)
 }
 
