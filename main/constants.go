@@ -44,7 +44,7 @@ const (
 
 	// AgentName contains the .sh files
 	// stored under the agent version
-	AgentName = "DSC"
+	AgentName = "GC"
 
 	// ExtensionHandlerLogFileName is the log file name.
 	ExtensionHandlerLogFileName = "gcextn-handler.log"
