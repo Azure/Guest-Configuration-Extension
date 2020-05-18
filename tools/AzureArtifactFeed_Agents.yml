@@ -1,0 +1,43 @@
+trigger:
+  batch: true
+  branches:
+    include:
+      - master
+
+  paths:
+      include:
+      - agent/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - task: PowerShell@2
+    inputs:
+      pwsh: 'true'
+      targetType: 'inline'
+      script: |
+        # Stage binaries
+        Copy-Item '$(Build.SourcesDirectory)/agent/GC_1.0.0.zip' '$(Build.ArtifactStagingDirectory)/DSC_Linux.zip'
+        # Get extension metadata
+        [xml]$extensionData = Get-Content '$(Build.SourcesDirectory)/misc/manifest.xml'
+        # Azure DevOps only supports Semver 2 versioning
+        [version]$version = $extensionData.ExtensionImage.Version
+        $DSC_VERSION = "$($version.major).$($version.minor).$($version.Build)"
+        $DSC_DESCRIPTION = $extensionData.ExtensionImage.Description
+        
+        # Write extension metadata to env variables
+        Write-Host "##vso[task.setvariable variable=DSC_VERSION]$DSC_VERSION"
+        Write-Host "##vso[task.setvariable variable=DSC_DESCRIPTION]$DSC_DESCRIPTION"
+    displayName: Stage agent binaries
+
+  - task: UniversalPackages@0
+    inputs:
+      command: publish
+      publishDirectory: '$(Build.ArtifactStagingDirectory)'
+      vstsFeedPublish: 'guestconfiguration'
+      vstsFeedPackagePublish: 'linux_agent'
+      versionOption: custom
+      versionPublish: '$(DSC_VERSION)'
+      packagePublishDescription: '$(DSC_DESCRIPTION)'
+    displayName: Universal Publish
