@@ -71,18 +71,14 @@ func main() {
 	lg.event("Reporting transitioning status...")
 	reportStatus(lg, hEnv, seqNum, status.StatusTransitioning, cmd, "Transitioning")
 
-	if code, cmdErr := cmd.f(lg, hEnv, seqNum); cmdErr != nil {
+	if cmdErr := cmd.f(lg, hEnv, seqNum); cmdErr != nil {
 		message := "Operation '" + cmd.name + "' failed."
 		lg.eventError(message, cmdErr)
-		telemetry(TelemetryScenario, message+" Error: '"+cmdErr.Error()+"', ErrorCode: '"+code+"'.", false, 0)
+		telemetry(TelemetryScenario, message+" Error: '"+cmdErr.Error()+"'.", false, 0)
 		// Never fail on disable due to a current bug in the Guest Agent
 		if cmd.name != "disable" {
 			reportStatus(lg, hEnv, seqNum, status.StatusError, cmd, cmdErr.Error())
-			if(code != 51) {
-				os.Exit(cmd.failExitCode)
-			} else {
-				os.Exit(51)
-			}
+			os.Exit(cmd.failExitCode)
 		}
 	} else {
 		message := "Operation '" + cmd.name + "' succeeded."
