@@ -103,13 +103,14 @@ func enable(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int)
 
 	// run install.sh and enable.sh
 	lg.event("installing agent")
-	code, runErr = runCmd(lg, "bash ./install.sh", agentDirectory, cfg)
+	var err_code int
+	err_code, runErr = runCmd(lg, "bash ./install.sh", agentDirectory, cfg)
 	if runErr != nil {
 		lg.eventError("agent installation failed", runErr)
-		telemetry(TelemetryScenario, "agent installation failed: "+runErr.Error()+", Error code: "+code, false, 0)
-		if code == 51 {
-			telemetry(TelemetryScenario, "Exiting with error code : "+code, false, 0)
-			os.Exit(code)
+		telemetry(TelemetryScenario, "agent installation failed: "+runErr.Error()+", Error code: "+err_code, false, 0)
+		if err_code == 51 {
+			telemetry(TelemetryScenario, "Exiting with error code : "+err_code, false, 0)
+			os.Exit(err_code)
 		}
 	} else {
 		lg.customLog(logEvent, "agent installation succeeded", logEvent, "enabling agent")
