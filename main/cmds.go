@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type cmdfunc func(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int) error
+type cmdfunc func(lg ExtensionLogger, hEnv vmextension.HandlerEnvironment, seqNum int) (code int, err error)
 type prefunc func(lg ExtensionLogger, seqNum int) error
 
 // Add more fields as necessary
