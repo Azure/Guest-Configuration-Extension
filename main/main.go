@@ -71,7 +71,6 @@ func main() {
 	lg.event("Reporting transitioning status...")
 	reportStatus(lg, hEnv, seqNum, status.StatusTransitioning, cmd, "Transitioning")
 
-	var err_code int
 	if err_code, cmdErr := cmd.f(lg, hEnv, seqNum); cmdErr != nil {
 		message := "Operation '" + cmd.name + "' failed."
 		lg.eventError(message, cmdErr)
