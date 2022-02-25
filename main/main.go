@@ -72,7 +72,6 @@ func main() {
 	reportStatus(lg, hEnv, seqNum, status.StatusTransitioning, cmd, "Transitioning")
 
 	telemetry(TelemetryScenario, "testing .... Exiting with error code : 51", false, 0)
-	lg.eventError(message, "testing .... Exiting with error code : 51")
 	reportStatus(lg, hEnv, seqNum, status.UnsupportedOS, cmd, "UnsupportedOSMsg")
 	os.Exit(51)
 
@@ -84,7 +83,6 @@ func main() {
 		if cmd.name != "disable" {
 			if err_code == 51 {
 				telemetry(TelemetryScenario, "Exiting with error code : 51", false, 0)
-				lg.eventError(message, "Exiting with error code : 51")
 				reportStatus(lg, hEnv, seqNum, status.UnsupportedOS, cmd, "UnsupportedOS")
 				os.Exit(err_code)
 			} else {
