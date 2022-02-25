@@ -71,6 +71,11 @@ func main() {
 	lg.event("Reporting transitioning status...")
 	reportStatus(lg, hEnv, seqNum, status.StatusTransitioning, cmd, "Transitioning")
 
+	telemetry(TelemetryScenario, "testing .... Exiting with error code : 51", false, 0)
+	lg.eventError(message, "testing .... Exiting with error code : 51")
+	reportStatus(lg, hEnv, seqNum, status.UnsupportedOS, cmd, "UnsupportedOSMsg")
+	os.Exit(51)
+
 	if err_code, cmdErr := cmd.f(lg, hEnv, seqNum); cmdErr != nil {
 		message := "Operation '" + cmd.name + "' failed."
 		lg.eventError(message, cmdErr)
