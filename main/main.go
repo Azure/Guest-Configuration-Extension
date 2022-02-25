@@ -80,7 +80,7 @@ func main() {
 			if err_code == 51 {
 				telemetry(TelemetryScenario, "Exiting with error code : 51", false, 0)
 				lg.eventError(message, "Exiting with error code : 51")
-				reportStatus(lg, hEnv, seqNum, status.StatusError, cmd, "UnsupportedOS")
+				reportStatus(lg, hEnv, seqNum, status.UnsupportedOS, cmd, "UnsupportedOS")
 				os.Exit(err_code)
 			} else {
 				reportStatus(lg, hEnv, seqNum, status.StatusError, cmd, cmdErr.Error())

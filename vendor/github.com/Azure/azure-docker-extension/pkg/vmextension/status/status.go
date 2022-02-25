@@ -23,6 +23,7 @@ const (
 	StatusTransitioning Type = "transitioning"
 	StatusError         Type = "error"
 	StatusSuccess       Type = "success"
+	UnsupportedOS       Type = "unsupportedOS"
 )
 
 type Status struct {
