@@ -72,7 +72,8 @@ func main() {
 	reportStatus(lg, hEnv, seqNum, status.StatusTransitioning, cmd, "Transitioning")
 
 	if err_code, cmdErr := cmd.f(lg, hEnv, seqNum); cmdErr != nil {
-		message := "Operation '" + cmd.name + "' failed."
+		message := "Operation '" + cmd.name + "' failed. Error code: " + strconv.Itoa(err_code)
+
 		lg.eventError(message, cmdErr)
 		telemetry(TelemetryScenario, message+" Error: '"+cmdErr.Error()+"'.", false, 0)
 		// Never fail on disable due to a current bug in the Guest Agent
