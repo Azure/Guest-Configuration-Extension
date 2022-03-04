@@ -166,7 +166,7 @@ check_linux_distro() {
         LINUX_DISTRO="Mariner"
         MIN_SUPPORTED_DISTRO_VERSION="1.0"
     else
-        print_error "Unexpected Linux distribution. Expected Linux distributions include only Ubuntu, Red Hat, SUSE, CentOS, and Debian."
+        print_error "Unexpected Linux distribution. Expected Linux distributions include only Ubuntu, Red Hat, SUSE, CentOS, Debian or Mariner."
         write_install_status_notsupported
         exit 51
     fi
