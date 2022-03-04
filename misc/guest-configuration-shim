@@ -5,6 +5,11 @@ readonly SCRIPT_DIR=$(dirname "$0")
 readonly HANDLER_BIN="guest-configuration-extension"
 readonly LOG_DIR="/var/log/azure/guest-configuration"
 readonly LOG_FILE=handler.log
+LINUX_DISTRO=""
+
+print_error() {
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $@" >&2
+}
 
 # status_file returns the .status file path we are supposed to write
 # by determining the highest sequence number from ./config/*.settings files.
@@ -23,7 +28,7 @@ status_file_path() {
         readlink -f "$status_dir/$status_file"
 }
 
-write_status() {
+write_enable_status_transitioning() {
 	status_file="$(status_file_path)"
 	if [ -f "$status_file" ]; then
 		echo "Not writing a placeholder status file, already exists: $status_file"
@@ -49,11 +54,141 @@ write_status() {
 	fi
 }
 
+write_install_status_notsupported() {
+	status_file="$(status_file_path)"
+		timestamp="$(date --utc --iso-8601=seconds)"
+		cat > "$status_file" <<- EOF
+			[
+				{
+					"version": 1,
+					"timestampUTC": "$timestamp",
+					"status": {
+						"operation": "install",
+						"status": "error",
+						"formattedMessage": {
+							"lang": "en",
+							"message": "Unsupported $LINUX_DISTRO version $LINUX_DISTRO_VERSION"
+						}
+					}
+				}
+			]
+		EOF
+}
+
+compareversion () {
+    if [[ $1 == $2 ]]
+    then
+        compare_result=0
+        return
+    fi
+
+    local IFS=.
+    local i version1=($1) version2=($2)
+
+    # Fill zeros in version1 if its lenth is less than version2
+    for ((i=${#version1[@]}; i<${#version2[@]}; i++))
+    do
+        version1[i]=0
+    done
+
+    for ((i=0; i<${#version1[@]}; i++))
+    do
+        if [[ -z ${version2[i]} ]]
+        then
+            # Fill zeros in version2 if its lenth is less than version1
+            version2[i]=0
+        fi
+
+        # compare the version digits
+        if ((10#${version1[i]} > 10#${version2[i]}))
+        then
+            compare_result=1
+            return
+        fi
+        if ((10#${version1[i]} < 10#${version2[i]}))
+        then
+            compare_result=2
+            return
+        fi
+    done
+    compare_result=0
+    return
+}
+
+get_linux_version() {
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        LINUX_DISTRO_VERSION=$VERSION_ID
+    elif type lsb_release >/dev/null 2>&1; then
+        LINUX_DISTRO_VERSION=$(lsb_release -sr)
+    elif [ -f /etc/lsb-release ]; then
+        . /etc/lsb-release
+        LINUX_DISTRO_VERSION=$DISTRIB_RELEASE
+    elif [ -f /etc/debian_version ]; then
+        LINUX_DISTRO_VERSION=$(cat /etc/debian_version)
+    else
+        # Fall back to uname.
+        LINUX_DISTRO_VERSION=$(uname -r)
+    fi
+
+    if [ -z $LINUX_DISTRO_VERSION ]; then
+        print_error "Unexpected error occurred while getting the distro version."
+        exit 1
+    fi
+    echo "Linux distribution version is $LINUX_DISTRO_VERSION."
+}
+
+check_linux_distro() {
+    if [ ! -z $LINUX_DISTRO ]; then
+        return
+    fi
+
+    get_linux_version
+
+    VERSION_OUTPUT=$(cat /proc/version)
+
+    if [[ $VERSION_OUTPUT = *"Ubuntu"* ]]; then
+        LINUX_DISTRO="Ubuntu"
+        MIN_SUPPORTED_DISTRO_VERSION="14.04"
+    elif [[ $VERSION_OUTPUT = *"Red Hat"* ]]; then
+        LINUX_DISTRO="Red Hat"
+        MIN_SUPPORTED_DISTRO_VERSION="7.0"
+    elif [[ $VERSION_OUTPUT = *"SUSE"* ]]; then
+        LINUX_DISTRO="SUSE"
+        MIN_SUPPORTED_DISTRO_VERSION="12.0"
+    elif [[ $VERSION_OUTPUT = *"CentOS"* ]]; then
+        LINUX_DISTRO="CentOS"
+        MIN_SUPPORTED_DISTRO_VERSION="7.0"
+    elif [[ $VERSION_OUTPUT = *"Debian"* ]]; then
+        LINUX_DISTRO="Debian"
+        MIN_SUPPORTED_DISTRO_VERSION="8.0"
+    elif [[ $VERSION_OUTPUT = *"Mariner"* ]]; then
+        LINUX_DISTRO="Mariner"
+        MIN_SUPPORTED_DISTRO_VERSION="1.0"
+    else
+        print_error "Unexpected Linux distribution. Expected Linux distributions include only Ubuntu, Red Hat, SUSE, CentOS, Debian or Mariner."
+        write_install_status_notsupported
+        exit 51
+    fi
+
+    compareversion $LINUX_DISTRO_VERSION $MIN_SUPPORTED_DISTRO_VERSION
+    if [[ $compare_result -eq 2 ]]; then
+        print_error "Unsupported $LINUX_DISTRO version $LINUX_DISTRO_VERSION. $LINUX_DISTRO version should be greater or equal than $MIN_SUPPORTED_DISTRO_VERSION."
+        write_install_status_notsupported
+        exit 51
+    fi
+
+    echo "Linux distribution is $LINUX_DISTRO."
+}
+
 if [ "$#" -ne 1 ]; then
     echo "Incorrect usage."
     echo "Usage: $0 <command>"
     exit 1
 fi
+
+# check if the operating system is supported by GC or not.
+check_linux_distro
 
 # Redirect logs of the handler process
 mkdir -p "$LOG_DIR"
@@ -67,7 +202,7 @@ if [[ "$cmd" == "enable" ]]; then
     # for 'enable' command, write a .status file first, then double fork
     # to detach from the  handler process tree to avoid getting terminated 
     # after the 15-minute extension enabling timeout.
-    write_status
+    write_enable_status_transitioning
     set -x
     nohup "$bin" $@ &
 else
