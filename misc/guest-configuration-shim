@@ -6,7 +6,6 @@ readonly HANDLER_BIN="guest-configuration-extension"
 readonly LOG_DIR="/var/log/azure/guest-configuration"
 readonly LOG_FILE=handler.log
 LINUX_DISTRO=""
-LINUX_DISTRO_VERSION=""
 
 print_error() {
   echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $@" >&2
@@ -57,7 +56,6 @@ write_enable_status_transitioning() {
 
 write_install_status_notsupported() {
 	status_file="$(status_file_path)"
-		echo "UnSupported operating system, writing error in status file: $status_file"
 		timestamp="$(date --utc --iso-8601=seconds)"
 		cat > "$status_file" <<- EOF
 			[
@@ -80,7 +78,8 @@ write_install_status_notsupported() {
 compareversion () {
     if [[ $1 == $2 ]]
     then
-        return 0
+        compare_result=0
+        return
     fi
 
     local IFS=.
@@ -103,14 +102,17 @@ compareversion () {
         # compare the version digits
         if ((10#${version1[i]} > 10#${version2[i]}))
         then
-            return 1
+            compare_result=1
+            return
         fi
         if ((10#${version1[i]} < 10#${version2[i]}))
         then
-            return 2
+            compare_result=2
+            return
         fi
     done
-    return 0
+    compare_result=0
+    return
 }
 
 get_linux_version() {
@@ -170,7 +172,7 @@ check_linux_distro() {
     fi
 
     compareversion $LINUX_DISTRO_VERSION $MIN_SUPPORTED_DISTRO_VERSION
-    if [[ $? -eq 2 ]]; then
+    if [[ $compare_result -eq 2 ]]; then
         print_error "Unsupported $LINUX_DISTRO version $LINUX_DISTRO_VERSION. $LINUX_DISTRO version should be greater or equal than $MIN_SUPPORTED_DISTRO_VERSION."
         write_install_status_notsupported
         exit 51
@@ -185,12 +187,12 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
+# check if the operating system is supported by GC or not.
+check_linux_distro
+
 # Redirect logs of the handler process
 mkdir -p "$LOG_DIR"
 exec &> >(tee -ia "$LOG_DIR/$LOG_FILE")
-
-# check if it is a supported distro
-check_linux_distro
 
 # Start handling the process in the background
 bin="$(readlink -f "$SCRIPT_DIR/$HANDLER_BIN")"
