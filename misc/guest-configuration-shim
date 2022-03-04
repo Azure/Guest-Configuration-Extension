@@ -8,6 +8,10 @@ readonly LOG_FILE=handler.log
 LINUX_DISTRO=""
 LINUX_DISTRO_VERSION=""
 
+print_error() {
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $@" >&2
+}
+
 # status_file returns the .status file path we are supposed to write
 # by determining the highest sequence number from ./config/*.settings files.
 status_file_path() {
