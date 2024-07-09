@@ -13,7 +13,7 @@ found on Chef InSpec.
 To deploy the Guest Configuration Extension for Linux onto your machine, run:
 
     $ az vm extension set --resource-group <resource-group> --vm-name <vm-name> \
-        --name ConfigurationForLinux --publisher Microsoft.GuestConfiguration --version 0.8.0 
+        --name ConfigurationForLinux --publisher Microsoft.GuestConfiguration
 
 ## 2. Commands Guide
 
