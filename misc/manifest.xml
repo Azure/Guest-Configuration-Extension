@@ -2,7 +2,7 @@
 <ExtensionImage xmlns="http://schemas.microsoft.com/windowsazure">
   <ProviderNameSpace>Microsoft.GuestConfiguration</ProviderNameSpace>
   <Type>ConfigurationForLinux</Type>
-  <Version>1.26.79</Version>
+  <Version>1.26.80</Version>
   <Label>Microsoft Azure Guest Configuration Extension for Linux Virtual Machines</Label>
   <HostingResources>VmRole</HostingResources>
   <MediaLink></MediaLink>
