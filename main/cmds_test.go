@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
-	"go.uber.org/zap"
+
 	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/require"
 )
