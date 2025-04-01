@@ -22,11 +22,6 @@
 			"Rev": "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
 		},
 		{
-			"ImportPath": "go.uber.org/zap",
-			"Comment": "v1.16.0",
-			"Rev": "3b94cc0012dc5ecddd0c56254b5ae7bf34046b48"
-		},
-		{
 			"ImportPath": "github.com/go-kit/kit/log",
 			"Comment": "v0.7.0-25-ge2d71a0",
 			"Rev": "e2d71a06a40aa95cb82ccd72e854893612c02db7"
