@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"go.uber.org/zap"
 	"github.com/go-kit/kit/log"
 	"io"
 	golog "log"

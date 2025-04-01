@@ -4,13 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
-	"github.com/Azure/azure-docker-extension/pkg/vmextension/status"
-
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
-	"github.com/go-kit/kit/log"
-	"strconv"
+	"github.com/Azure/azure-docker-extension/pkg/vmextension/status"
+	"go.uber.org/zap"
 )
 
 // flags for debugging and printing detailed reports
@@ -24,65 +23,70 @@ var (
 	debug   = flag.Bool("debug", false, "Return a debug report")
 
 	// the logger that will be used throughout
-	lg ExtensionLogger
-
-	// this logger is used only for testing purposes
-	noopLogger = ExtensionLogger{log.NewNopLogger(), ""}
+	lg *zap.SugaredLogger
 )
 
 func main() {
-	// parse extension environment
+	// Initialize Zap logger
+	logger, _ := zap.NewProduction() // Use zap.NewDevelopment() for development
+	defer logger.Sync()              // Flushes buffer, if any
+	lg = logger.Sugar()
+
+	// Log an example startup message
+	lg.Infow("Starting application",
+		"version", "1.0.0",
+		"operation", "main",
+	)
+
+	// Parse extension environment
 	hEnv, handlerErr := vmextension.GetHandlerEnv()
 	if handlerErr != nil {
-		lg.eventError("Failed to parse handlerEnv file.", handlerErr)
+		lg.Errorw("Failed to parse handlerEnv file.", "error", handlerErr)
 		os.Exit(failureCode)
 	}
 
-	lg = newLogger(hEnv.HandlerEnvironment.LogFolder)
+	lg.Infow("Handler environment parsed", "logFolder", hEnv.HandlerEnvironment.LogFolder)
 
-	// parse the command line arguments
+	// Parse the command line arguments
 	flag.Parse()
 	cmd := parseCmd(flag.Args())
-	lg.with("Operation: ", cmd.name)
-	lg.customLog("Command: ", cmd.name)
+	lg.Infow("Parsed command", "operation", cmd.name)
 
 	seqNum, seqErr := vmextension.FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
 	if seqErr != nil {
-		lg.eventError("failed to find sequence number", seqErr)
-		// only throw a fatal error if the command is not install
+		lg.Errorw("Failed to find sequence number", "error", seqErr)
 		if cmd.name != "install" {
 			os.Exit(cmd.failExitCode)
 		}
 	}
-	lg.event("seqNum: " + strconv.Itoa(seqNum))
+	lg.Infow("Sequence number found", "seqNum", seqNum)
 
-	// check sub-command preconditions, if any, before executing
-	lg.event("start operation")
+	// Check sub-command preconditions, if any, before executing
+	lg.Info("Start operation")
 	if cmd.pre != nil {
-		lg.event("pre-check")
+		lg.Info("Running pre-check")
 		if preErr := cmd.pre(lg, seqNum); preErr != nil {
-			lg.eventError("pre-check failed", preErr)
+			lg.Errorw("Pre-check failed", "error", preErr)
 			telemetry(TelemetryScenario, "enable pre-check failed: "+preErr.Error(), false, 0)
 			os.Exit(cmd.failExitCode)
 		}
 	}
 
-	// execute the command
-	lg.event("Reporting transitioning status...")
+	// Execute the command
+	lg.Info("Reporting transitioning status...")
 	reportStatus(lg, hEnv, seqNum, status.StatusTransitioning, cmd, "Transitioning")
 
 	if cmdErr := cmd.f(lg, hEnv, seqNum); cmdErr != nil {
 		message := "Operation '" + cmd.name + "' failed."
-		lg.eventError(message, cmdErr)
+		lg.Errorw(message, "error", cmdErr)
 		telemetry(TelemetryScenario, message+" Error: '"+cmdErr.Error()+"'.", false, 0)
-		// Never fail on disable due to a current bug in the Guest Agent
 		if cmd.name != "disable" {
 			reportStatus(lg, hEnv, seqNum, status.StatusError, cmd, cmdErr.Error())
 			os.Exit(cmd.failExitCode)
 		}
 	} else {
 		message := "Operation '" + cmd.name + "' succeeded."
-		lg.event(message)
+		lg.Info(message)
 		telemetry(TelemetryScenario, message, false, 0)
 	}
 
