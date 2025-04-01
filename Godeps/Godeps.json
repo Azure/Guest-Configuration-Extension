@@ -23,7 +23,7 @@
 		},
 		{
 			"ImportPath": "github.com/sirupsen/logrus",
-			"Comment": "v1.9.0",
+			"Comment": "v1.9.3",
 			"Rev": "d1e6332644483cfee14de11099f03645561d55f8"
 		},
 		{
