@@ -37,11 +37,6 @@
 			"Rev": "d1e6332644483cfee14de11099f03645561d55f8"
 		},
 		{
-			"ImportPath": "github.com/go-kit/kit/log",
-			"Comment": "v0.7.0-25-ge2d71a0",
-			"Rev": "e2d71a06a40aa95cb82ccd72e854893612c02db7"
-		},
-		{
 			"ImportPath": "github.com/go-logfmt/logfmt",
 			"Comment": "v0.3.0",
 			"Rev": "390ab7935ee28ec6b286364bba9b4dd6410cb3d5"
