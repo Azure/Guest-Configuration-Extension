@@ -3,7 +3,6 @@ package main
 import (
     "os"
     "path"
-	"io"
 
     "github.com/sirupsen/logrus"
     golog "log"
