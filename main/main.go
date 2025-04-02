@@ -9,7 +9,6 @@ import (
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension/status"
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
-	"github.com/sirupsen/logrus"
 )
 
 // flags for debugging and printing detailed reports
