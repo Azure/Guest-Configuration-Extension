@@ -30,26 +30,6 @@ var (
 )
 
 func main() {
-	// Create a new Logrus logger
-    logger := logrus.New()
-
-    // Set the log level to Info
-    logger.SetLevel(logrus.InfoLevel)
-
-    // Log a simple message
-    logger.Info("This is an info message")
-
-    // Log a warning message
-    logger.Warn("This is a warning message")
-
-    // Log an error message
-    logger.Error("This is an error message")
-
-    // Log with fields (structured logging)
-    logger.WithFields(logrus.Fields{
-        "operation": "test",
-        "status":    "success",
-    }).Info("Structured log message")
 
 	// parse extension environment
 	hEnv, handlerErr := vmextension.GetHandlerEnv()
@@ -70,7 +50,7 @@ func main() {
 	seqNum, seqErr := vmextension.FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
 	if seqErr != nil {
 		lg.eventError("failed to find sequence number", seqErr)
-		// only throw a fatal error if the command is not install
+		// only throw a fatal error if the command is not installed
 		if cmd.name != "install" {
 			os.Exit(cmd.failExitCode)
 		}

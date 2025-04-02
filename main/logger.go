@@ -37,7 +37,6 @@ func newLogger(logDir string) ExtensionLogger {
     // Create a new Logrus logger
     logger := logrus.New()
     logger.SetOutput(fileHandle) // Log to the file
-    logger.SetFormatter(&logrus.JSONFormatter{})
     logger.SetLevel(logrus.InfoLevel)
 
     // Return the ExtensionLogger
@@ -53,12 +52,7 @@ func newNoopLogger() ExtensionLogger {
 
 // Add a key-value pair to the logger
 func (lg ExtensionLogger) with(key string, value string) {
-    lg.logger.WithField(key, value).Info("Added context")
-}
-
-// Log a message
-func (lg ExtensionLogger) output(output string) {
-    lg.logger.Info(output)
+    lg.logger.WithField(key, value).Info("")
 }
 
 // Log an event
