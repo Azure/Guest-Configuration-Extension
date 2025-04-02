@@ -3,6 +3,7 @@ package main
 import (
     "os"
     "path"
+	"io"
 
     "github.com/sirupsen/logrus"
     golog "log"
@@ -12,6 +13,12 @@ import (
 type ExtensionLogger struct {
     logger      *logrus.Logger
     logFilePath string
+}
+
+type NoopWriter struct{}
+
+func (n *NoopWriter) Write(p []byte) (int, error) {
+    return len(p), nil
 }
 
 // create a new ExtensionLogger
@@ -36,6 +43,13 @@ func newLogger(logDir string) ExtensionLogger {
 
     // Return the ExtensionLogger
     return ExtensionLogger{logger: logger, logFilePath: extensionLogPath}
+}
+
+// newNoopLogger creates a Logrus logger that discards all log output
+func newNoopLogger() ExtensionLogger {
+    logger := logrus.New()
+    logger.SetOutput(&NoopWriter{}) // Discard all log output
+    return ExtensionLogger{logger: logger, logFilePath: ""}
 }
 
 // Add a key-value pair to the logger

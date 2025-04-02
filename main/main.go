@@ -10,7 +10,6 @@ import (
 	"github.com/Azure/azure-docker-extension/pkg/vmextension/status"
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/sirupsen/logrus"
-	"github.com/go-kit/kit/log"
 )
 
 // flags for debugging and printing detailed reports
@@ -60,7 +59,7 @@ func main() {
 	}
 
 	lg = newLogger(hEnv.HandlerEnvironment.LogFolder)
-	noopLogger = newLogger(hEnv.HandlerEnvironment.LogFolder)
+	noopLogger = newNoopLogger()
 	
 	// parse the command line arguments
 	flag.Parse()
