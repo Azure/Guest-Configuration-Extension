@@ -20,7 +20,7 @@ func newLogger(logDir string) ExtensionLogger {
         golog.Printf("ERROR: Cannot create log folder %s: %v \r\n", logDir, err)
     }
 
-    extensionLogPath := path.Join(logPath, EsionHandlerLogFileName)
+    extensionLogPath := path.Join(logPath, ExtensionHandlerLogFileName)
     golog.Printf("Logging in file %s: in directory %s: .\r\n", ExtensionHandlerLogFileName, logPath)
 
     fileHandle, err := os.OpenFile(extensionLogPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
