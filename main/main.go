@@ -4,14 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension/status"
-
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
 	"github.com/sirupsen/logrus"
 	"github.com/go-kit/kit/log"
-	"strconv"
 )
 
 // flags for debugging and printing detailed reports
@@ -28,7 +27,7 @@ var (
 	lg ExtensionLogger
 
 	// this logger is used only for testing purposes
-	noopLogger = ExtensionLogger{log.NewNopLogger(), ""}
+	noopLogger ExtensionLogger
 )
 
 func main() {
@@ -61,7 +60,8 @@ func main() {
 	}
 
 	lg = newLogger(hEnv.HandlerEnvironment.LogFolder)
-
+	noopLogger = newLogger(hEnv.HandlerEnvironment.LogFolder)
+	
 	// parse the command line arguments
 	flag.Parse()
 	cmd := parseCmd(flag.Args())
