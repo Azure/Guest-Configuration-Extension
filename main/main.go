@@ -9,9 +9,16 @@ import (
 	"github.com/Azure/azure-docker-extension/pkg/vmextension/status"
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
+	"github.com/sirupsen/logrus"
 	"github.com/go-kit/kit/log"
 	"strconv"
 )
+
+// ExtensionLogger for all the extension-related events
+type ExtensionLogger struct {
+    logger      *logrus.Logger
+    logFilePath string
+}
 
 // flags for debugging and printing detailed reports
 type flags struct {
