@@ -22,6 +22,11 @@
 			"Rev": "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
 		},
 		{
+			"ImportPath": "go.uber.org/zap",
+			"Comment": "v1.16.0",
+			"Rev": "404189cf44aea95b0cd9bddcb0242dd4cf88c510"
+		},
+		{
 			"ImportPath": "github.com/sirupsen/logrus",
 			"Comment": "v1.9.3",
 			"Rev": "d1e6332644483cfee14de11099f03645561d55f8"
