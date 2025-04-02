@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"golang.org/x/sys"
 	"github.com/sirupsen/logrus"
 	"github.com/go-kit/kit/log"
 	"io"
