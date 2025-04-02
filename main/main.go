@@ -14,12 +14,6 @@ import (
 	"strconv"
 )
 
-// ExtensionLogger for all the extension-related events
-type ExtensionLogger struct {
-    logger      *logrus.Logger
-    logFilePath string
-}
-
 // flags for debugging and printing detailed reports
 type flags struct {
 	verbose bool
@@ -38,6 +32,27 @@ var (
 )
 
 func main() {
+	// Create a new Logrus logger
+    logger := logrus.New()
+
+    // Set the log level to Info
+    logger.SetLevel(logrus.InfoLevel)
+
+    // Log a simple message
+    logger.Info("This is an info message")
+
+    // Log a warning message
+    logger.Warn("This is a warning message")
+
+    // Log an error message
+    logger.Error("This is an error message")
+
+    // Log with fields (structured logging)
+    logger.WithFields(logrus.Fields{
+        "operation": "test",
+        "status":    "success",
+    }).Info("Structured log message")
+
 	// parse extension environment
 	hEnv, handlerErr := vmextension.GetHandlerEnv()
 	if handlerErr != nil {
