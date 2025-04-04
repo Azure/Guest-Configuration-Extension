@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
-	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,7 +35,7 @@ func Test_commands_shouldReportStatus(t *testing.T) {
 }
 
 func Test_install(t *testing.T) {
-	err := install(ExtensionLogger{log.NewNopLogger(), ""},
+	err := install(ExtensionLogger{newNoopLogger()},
 		vmextension.HandlerEnvironment{},
 		0)
 	require.Nil(t, err)
