@@ -22,12 +22,12 @@ func (n *NoopWriter) Write(p []byte) (int, error) {
 
 // create a new ExtensionLogger
 func newLogger(logDir string) ExtensionLogger {
-        if err := os.MkdirAll(logPath, 0644); err != nil {
+        if err := os.MkdirAll(logDir, 0755); err != nil {
         golog.Printf("ERROR: Cannot create log folder %s: %v \r\n", logDir, err)
     }
 
-    extensionLogPath := path.Join(logPath, ExtensionHandlerLogFileName)
-    golog.Printf("Logging in file %s: in directory %s: .\r\n", ExtensionHandlerLogFileName, logPath)
+    extensionLogPath := path.Join(logDir, ExtensionHandlerLogFileName)
+    golog.Printf("Logging in file %s: in directory %s: .\r\n", ExtensionHandlerLogFileName, logDir)
 
     fileHandle, err := os.OpenFile(extensionLogPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
     if err != nil {
