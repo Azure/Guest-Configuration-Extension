@@ -37,7 +37,10 @@ func main() {
 		os.Exit(failureCode)
 	}
 
-	lg = newLogger(hEnv.HandlerEnvironment.LogFolder)
+	// Note that this should be logging to: hEnv.HandlerEnvironment.LogFolder, but
+	// The original functionality had this logging at "./path" within the extension
+	// directory, and we don't want to break this.
+	lg = newLogger(logPath)
 	noopLogger = newNoopLogger()
 	
 	// parse the command line arguments
