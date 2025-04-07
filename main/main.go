@@ -52,7 +52,7 @@ func main() {
 	seqNum, seqErr := vmextension.FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
 	if seqErr != nil {
 		lg.eventError("failed to find sequence number", seqErr)
-		// only throw a fatal error if the command is not installed
+		// only throw a fatal error if the command is not "install"
 		if cmd.name != "install" {
 			os.Exit(cmd.failExitCode)
 		}
