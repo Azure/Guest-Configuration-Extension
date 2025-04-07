@@ -4,13 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/Azure/azure-docker-extension/pkg/vmextension/status"
-
 	"github.com/Azure/azure-docker-extension/pkg/vmextension"
-	"github.com/go-kit/kit/log"
-	"strconv"
 )
 
 // flags for debugging and printing detailed reports
@@ -27,10 +25,11 @@ var (
 	lg ExtensionLogger
 
 	// this logger is used only for testing purposes
-	noopLogger = ExtensionLogger{log.NewNopLogger(), ""}
+	noopLogger ExtensionLogger
 )
 
 func main() {
+
 	// parse extension environment
 	hEnv, handlerErr := vmextension.GetHandlerEnv()
 	if handlerErr != nil {
@@ -38,8 +37,12 @@ func main() {
 		os.Exit(failureCode)
 	}
 
-	lg = newLogger(hEnv.HandlerEnvironment.LogFolder)
-
+	// Note that this should be logging to: hEnv.HandlerEnvironment.LogFolder, but
+	// The original functionality had this logging at "./path" within the extension
+	// directory, and we don't want to break this.
+	lg = newLogger(logPath)
+	noopLogger = newNoopLogger()
+	
 	// parse the command line arguments
 	flag.Parse()
 	cmd := parseCmd(flag.Args())
@@ -49,7 +52,7 @@ func main() {
 	seqNum, seqErr := vmextension.FindSeqNum(hEnv.HandlerEnvironment.ConfigFolder)
 	if seqErr != nil {
 		lg.eventError("failed to find sequence number", seqErr)
-		// only throw a fatal error if the command is not install
+		// only throw a fatal error if the command is not "install"
 		if cmd.name != "install" {
 			os.Exit(cmd.failExitCode)
 		}
