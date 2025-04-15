@@ -40,7 +40,7 @@ func newLogger(logDir string) ExtensionLogger {
     // logger.SetLevel(logrus.InfoLevel)
 
     // Redirect standard output and error to the log file
-    log.SetOutput(fileHandle)
+    golog.SetOutput(fileHandle)
 
     // Return the ExtensionLogger
     return ExtensionLogger{logFilePath: extensionLogPath}
@@ -59,7 +59,7 @@ func (lg ExtensionLogger) with(key string, value string) {
 // Log an event
 func (lg ExtensionLogger) event(event string) {
     //lg.logger.Info(event)
-    golog.Println(output)
+    golog.Println(event)
 }
 
 // Log an error event
@@ -70,7 +70,7 @@ func (lg ExtensionLogger) eventError(event string, err error) {
 
 // Log custom key-value pairs
 func (lg ExtensionLogger) customLog(keyvals ...interface{}) {
-    fields := logrus.Fields{}
+    //fields := logrus.Fields{}
     for i := 0; i < len(keyvals)-1; i += 2 {
         key, ok := keyvals[i].(string)
         if !ok {
