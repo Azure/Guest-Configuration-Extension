@@ -3,14 +3,14 @@ package main
 import (
     "os"
     "path"
+    //"log"
 
-    "github.com/sirupsen/logrus"
     golog "log"
 )
 
 // ExtensionLogger for all the extension-related events
 type ExtensionLogger struct {
-    logger      *logrus.Logger
+    //logger      *logrus.Logger
     logFilePath string
 }
 
@@ -35,34 +35,37 @@ func newLogger(logDir string) ExtensionLogger {
     }
 
     // Create a new Logrus logger
-    logger := logrus.New()
-    logger.SetOutput(fileHandle) // Log to the file
-    logger.SetLevel(logrus.InfoLevel)
+    // logger := logrus.New()
+    // logger.SetOutput(fileHandle) // Log to the file
+    // logger.SetLevel(logrus.InfoLevel)
+
+    // Redirect standard output and error to the log file
+    log.SetOutput(fileHandle)
 
     // Return the ExtensionLogger
-    return ExtensionLogger{logger: logger, logFilePath: extensionLogPath}
+    return ExtensionLogger{logFilePath: extensionLogPath}
 }
 
-// newNoopLogger creates a Logrus logger that discards all log output
 func newNoopLogger() ExtensionLogger {
-    logger := logrus.New()
-    logger.SetOutput(&NoopWriter{}) // Discard all log output
-    return ExtensionLogger{logger: logger, logFilePath: ""}
+    return ExtensionLogger{logFilePath: ""}
 }
 
 // Add a key-value pair to the logger
 func (lg ExtensionLogger) with(key string, value string) {
-    lg.logger.WithField(key, value).Info("")
+    //lg.logger.WithField(key, value).Info("")
+    golog.Printf("Added context: %s=%s\n", key, value)
 }
 
 // Log an event
 func (lg ExtensionLogger) event(event string) {
-    lg.logger.Info(event)
+    //lg.logger.Info(event)
+    golog.Println(output)
 }
 
 // Log an error event
 func (lg ExtensionLogger) eventError(event string, err error) {
-    lg.logger.WithError(err).Error(event)
+    //lg.logger.WithError(err).Error(event)
+    golog.Println("ERROR: %s: %v \r\n", event, err)
 }
 
 // Log custom key-value pairs
@@ -73,7 +76,9 @@ func (lg ExtensionLogger) customLog(keyvals ...interface{}) {
         if !ok {
             continue
         }
-        fields[key] = keyvals[i+1]
+        //fields[key] = keyvals[i+1]
+        golog.Printf("%s=%v ", key, keyvals[i+1])
     }
-    lg.logger.WithFields(fields).Info("Custom log")
+    //lg.logger.WithFields(fields).Info("Custom log")
+    golog.Println()
 }
